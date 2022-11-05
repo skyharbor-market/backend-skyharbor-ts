@@ -14,7 +14,7 @@ const host = process.env.HOST || "0.0.0.0"
  * Get port from environment and store in Express.
  */
 
-var port = normalizePort(process.env.PORT || '8080');
+const port = normalizePort(process.env.PORT || '8080');
 
 /**
  * Listen on provided port, on all network interfaces.
@@ -30,7 +30,7 @@ app.listen(Number(port), host, async () => {
  */
 
 function normalizePort(val: string): number | string | boolean {
-  var port = parseInt(val, 10);
+  const port = parseInt(val, 10);
 
   if (isNaN(port)) {
     // named pipe
@@ -54,7 +54,7 @@ function onError(error: any) {
     throw error;
   }
 
-  var bind = typeof port === 'string'
+  const bind = typeof port === 'string'
     ? 'Pipe ' + port
     : 'Port ' + port;
 
