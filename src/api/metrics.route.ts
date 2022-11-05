@@ -1,9 +1,8 @@
 import express, { Request, Response } from "express"
 import { siteApiPool } from "../server"
-import { sqlStringOk, sqlOkAndCollectionExists } from "../functions/validationChecks"
+import { sqlOkAndCollectionExists } from "../functions/validationChecks"
 import { PoolClient, QueryResult } from "pg";
 import { Error } from "../classes/error"
-import { SqlQuery } from "../classes/sqlquery"
 
 const router = express.Router();
 
@@ -66,33 +65,32 @@ router.get('/floorPrices', async (req: Request, res: Response) => {
   // for each count, call getFloorPrices with a daysPrev of 0 + i
   // create array for the floor prices, add in each call to db? 
   let respArray = new Array();
-  let colls;
+  let colls: string | Error = "";
   // so set lastVal to 0, work backwards from like 30 days out, if price comes back null set to lastVal,
   // and then if subsequent call for 29 days returns a value it should use returned value and update lastVal,
   //  if still null set to lastVal 
   let lastVal = 0;
-  let i = req.query.days;
+  let i: number = Number(req.query.days);
   while (i > 0) {
 
     // call to get the array item for today - i
     colls = await getFloorPriceOnDate(req.query.collection, i);
 
-    if (colls.floor_value == 0 && i == req.query.days) {
+    if (Number(colls) == 0 && i == Number(req.query.days)) {
       colls = await getFloorPricePrev(req.query.collection, i)
     }
 
     if (colls instanceof Error) {
-
-      res.status(req.httpCode)
-      res.send(req.text)
-
+      res.status(colls.httpCode)
+      res.send(colls.text)
     }
 
-    if (colls.floor_value == null || colls.floor_value == 0) {
-      colls.floor_value = lastVal
-    } else {
-      lastVal = colls.floor_value
-    }
+    // TODO: not sure where/how floor_value is being set here
+    //if (colls.floor_value == null || colls.floor_value == 0) {
+    //  colls.floor_value = lastVal
+    //} else {
+    //  lastVal = colls.floor_value
+    //}
 
     console.log(colls);
 
@@ -108,7 +106,7 @@ router.get('/floorPrices', async (req: Request, res: Response) => {
 
     // console.log("collections" + collections)
 
-    if (colls == 500000) {
+    if (Number(colls) == 500000) {
       res.status(500);
       res.send({ "message": "Call failed, can devs do something?!" });
       return;
@@ -163,7 +161,7 @@ async function validateFloorPriceReq(req: any) {
 
 }
 
-async function getFloorPriceOnDate(coll: any, daysPrev: any) {
+async function getFloorPriceOnDate(coll: any, daysPrev: any): Promise<string> {
 
   return new Promise(resolve => {
 
@@ -193,7 +191,7 @@ async function getFloorPriceOnDate(coll: any, daysPrev: any) {
 }
 
 
-async function getFloorPricePrev(coll: any, daysPrev: any) {
+async function getFloorPricePrev(coll: any, daysPrev: any): Promise<string | Error> {
 
   return new Promise(resolve => {
 

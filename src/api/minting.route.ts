@@ -1,14 +1,12 @@
-const Error = require('../classes/Error');
-const SqlQuery = require('../classes/SqlQuery');
+import express, { Request, Response } from "express"
+import { siteApiPool } from "../server"
+import { sqlStringOk, sqlOkAndCollectionExists, addressIsValid, checkColumnExists } from "../functions/validationChecks"
+import { QueryResult } from "pg";
+import { Error } from "../classes/error"
+import { SqlQuery } from "../classes/sqlquery"
+import { DEFAULT_SALES_QUERY_LIMIT } from "../consts/apiConsts"
 
-const { DEFAULT_SALES_QUERY_LIMIT } = require('../consts/apiConsts');
-const { sqlStringOk, sqlOkAndCollectionExists, addressIsValid, checkColumnExists } = require('../functions/validationChecks');
-
-const { query } = require('express');
-const express = require('express');
-var router = express.Router();
-const api = require('../api');
-const e = require('express');
+const router = express.Router();
 
 const selectSql = "select s1.id, t1.nft_name, s1.token_id, t1.nft_desc, t1.total_existing, t1.nft_type, " +
   "t1.ipfs_art_url, t1.ipfs_art_hash, t1.ipfs_audio_url, t1.nft_hash, " +
@@ -25,13 +23,12 @@ const selectSql = "select s1.id, t1.nft_name, s1.token_id, t1.nft_desc, t1.total
   // "inner join mint_addresses m1 on m1.collection = c2.sys_name "+
   "inner join sales_addresses s2 on s1.sales_address_id = s2.id ";
 
-router.get('/', async (req, res) => {
+router.get('/', async (rawReq: Request, res: Response) => {
 
   // res.set('Access-Control-Allow-Origin', 'https://skyharbor.io');
 
   // validate inputs, then run? some inputs may not be needed, how to validate?
-
-  req = await validateInput(req)
+  const req: Request | Error = await validateInput(rawReq)
 
   if (typeof req !== "undefined") {
 
@@ -54,11 +51,11 @@ router.get('/', async (req, res) => {
         res.send(mintResp.text)
 
       } else {
-        res.status("201");
+        res.status(201);
 
         const respText = {
           response: 'mint request registered successfully, please respond with tx id',
-          mintId: mintResp.text
+          mintId: mintResp.rows
         }
 
         res.send(respText);
@@ -68,23 +65,19 @@ router.get('/', async (req, res) => {
     // console.log("sales" + sales)
 
   } else {
-
-    var resp = {
-      "message": "Call failed!"
-    };
-    res.status("500");
-    res.send(resp);
+    res.status(500);
+    res.send({ "message": "Call failed!" });
   }
 
 })
 
-router.get('/addTxId', async (req, res) => {
+router.get('/addTxId', async (rawReq: Request, res: Response) => {
 
   // res.set('Access-Control-Allow-Origin', 'https://skyharbor.io');
 
   // validate inputs, then run? some inputs may not be needed, how to validate?
 
-  req = await validateInput(req)
+  const req: Request | Error = await validateInput(rawReq)
 
   if (typeof req !== "undefined") {
 
@@ -107,7 +100,7 @@ router.get('/addTxId', async (req, res) => {
         res.send(mintResp.text)
 
       } else {
-        res.status("201");
+        res.status(201);
         res.send("mint request registered successfully");
       }
     }
@@ -115,12 +108,8 @@ router.get('/addTxId', async (req, res) => {
     // console.log("sales" + sales)
 
   } else {
-
-    var resp = {
-      "message": "Call failed!"
-    };
-    res.status("500");
-    res.send(resp);
+    res.status(500);
+    res.send({ "message": "Call failed!" });
   }
 
 })
@@ -128,7 +117,7 @@ router.get('/addTxId', async (req, res) => {
 //collection should exist if supplied, if not set to blank string.
 //limit should always be defined, calls should always be limited to some level, set as config var
 //searchFor shouldn't contain any banned strings for sql injects
-async function validateInput(req) {
+async function validateInput(req: Request) {
 
   if (req.query !== undefined) {
 
@@ -139,82 +128,55 @@ async function validateInput(req) {
       if (!(await sqlOkAndCollectionExists(req.query.collection))) {
 
         console.log("collection does not exist!");
-        var resp = {
-          "message": "collection does not exist.."
-        };
-        return new Error(resp, "400", 1)
+        return new Error("collection does not exist..", 400, 1)
       }
     }
 
     //check limit is numeric and less than default, or set to default
     if (req.query.limit !== undefined) {
-
-      if (isNaN(req.query.limit) || req.query.limit == "") {
-
-        var resp = {
-          "message": "invalid ?limit, not numeric."
-        };
-        return new Error(resp, "400", 2)
-
-      } else if (req.query.limit > DEFAULT_SALES_QUERY_LIMIT) {
-        req.query.limit = DEFAULT_SALES_QUERY_LIMIT
+      if (isNaN(Number(req.query.limit)) || req.query.limit == "") {
+        return new Error("invalid ?limit, not numeric.", 400, 2)
+      } else if (Number(req.query.limit) > DEFAULT_SALES_QUERY_LIMIT) {
+        req.query.limit = DEFAULT_SALES_QUERY_LIMIT.toString()
       }
-
     } else {
-      req.query.limit = DEFAULT_SALES_QUERY_LIMIT
+      req.query.limit = DEFAULT_SALES_QUERY_LIMIT.toString()
     }
 
     let searchForSqlOK = await sqlStringOk(req.query.searchFor)
     if (!searchForSqlOK) {
-
-      var resp = {
-        "message": "invalid ?searchFor."
-      };
-      return new Error(resp, "400", 3)
-
+      return new Error("invalid ?searchFor.", 400, 3)
     }
 
     if (req.query.sellerAddr !== undefined) {
 
-      sellerAddrSqlOK = await addressIsValid(req.query.sellerAddr)
+      const sellerAddrSqlOK = await addressIsValid(req.query.sellerAddr)
 
       if (!sellerAddrSqlOK) {
-
-        var resp = {
-          "message": "invalid ?sellerAddr."
-        };
-        return new Error(resp, "400", 4)
-
+        return new Error("invalid ?sellerAddr.", 400, 4)
       }
     }
 
     if (req.query.verified !== undefined) {
-
-      if (!(["true", "false"].includes(req.query.verified))) {
-
-        var resp = {
-          "message": "invalid ?verified."
-        };
-        return new Error(resp, "400", 5)
-
+      if (typeof req.query.verified === "string") {
+        if (!(["true", "false"].includes(req.query.verified))) {
+          return new Error("invalid ?verified.", 400, 5)
+        }
       }
     }
 
-  } else {
-    // set any defaults that require it 
-    req.query.limit = DEFAULT_SALES_QUERY_LIMIT
   }
 
-  return (req)
+  return req
 
 }
 
 // needs to return the ID of the inserted mintRequest 
-async function insertMintRequest(query) {
+async function insertMintRequest(query: any): Promise<QueryResult<any> | Error> {
 
   return new Promise(resolve => {
 
-    api.siteApiPool.connect(async (err, client, release) => {
+    siteApiPool.connect(async (err, client, release) => {
       if (err) {
         release()
         throw err
@@ -238,10 +200,7 @@ async function insertMintRequest(query) {
           .catch(e => {
             release()
             console.error(e.stack)
-            var resp = {
-              "message": "Call failed, can devs do something?!"
-            };
-            return new Error(resp, "500", 99)
+            return new Error("Call failed, can devs do something?!", 500, 99)
           })
 
       } else { //rtn error
@@ -256,21 +215,29 @@ async function insertMintRequest(query) {
 }
 
 
-async function getInsertMintReqText(query) {
+async function getInsertMintReqText(query: any) {
 
   // holy JESES SHIT if you don't initiaise these to blank it retains the value of the previous run. node is cobol lol
+  let statusSql = "";
+  let orderColSql = "";
+  let collectionSql = "";
+  let searchSql = "";
+  let sellerAddrSql = "";
+  let verifiedSql = "";
+  let queryParams: any[] = []
+  let queryText = ""
 
   let text = "insert into mint_requests(" +
     "id,status,number_to_mint,next_to_mint,total_cost_erg,total_image_size_gb,time_received"
     + ",mint_to_address,transaction_id,entire_mint_json,mint_p2s_address,mint_requests_json) values ("
-    + `default, ${query.}`
+    + `default, ${query}`
     + ""
 
   if (typeof query === "undefined") {
 
-    verifiedSql = getVerifiedSql("false");
-
-    queryText = selectSql + verifiedSql + " order by s1.id desc;";
+    // TODO: missing getVerifiedSql function
+    //verifiedSql = getVerifiedSql("false");
+    //queryText = selectSql + verifiedSql + " order by s1.id desc;";
 
   } else {
 
@@ -279,10 +246,7 @@ async function getInsertMintReqText(query) {
 
         statusSql = " status = $::text"
       } else {
-        var resp = {
-          "message": "invalid ?status, should be active, inactive, complete, cancelled, or not provided."
-        };
-        return new Error(resp, "400", 6)
+        return new Error("invalid ?status, should be active, inactive, complete, cancelled, or not provided.", 400, 6)
       }
     } else {
       //needed so .trim below works, why are you trimming only this field anyway wtf
@@ -327,10 +291,7 @@ async function getInsertMintReqText(query) {
           query.orderCol = "s1.id"
         }
       } else {
-        var resp = {
-          "message": "invalid ?orderCol, does not exist."
-        };
-        return new Error(resp, "400", 7)
+        return new Error("invalid ?orderCol, does not exist.", 400, 7)
       }
     }
 
@@ -347,15 +308,14 @@ async function getInsertMintReqText(query) {
     }
 
     // adds wherevars, if any are not blank, with where at start and 'and' before any additionals. ffs what a pisstake
-    whereSqls = [statusSql, collectionSql, searchSql, sellerAddrSql, verifiedSql]
-    whereVars = [query.status.trim(), query.collection, query.searchFor, query.sellerAddr, query.verified]
-    queryParams = []
-    whereSql = ""
+    let whereSqls = [statusSql, collectionSql, searchSql, sellerAddrSql, verifiedSql]
+    let whereVars = [query.status.trim(), query.collection, query.searchFor, query.sellerAddr, query.verified]
+    let whereSql = ""
     // flag for if first itr
-    whereFlag = true
+    let whereFlag = true
     // positional char for the sql query 
-    whereInt = 1;
-    loops = 0;
+    let whereInt = 1;
+    let loops = 0;
     whereSqls.forEach(function (ele) {
 
       if (ele !== "") {
@@ -384,10 +344,7 @@ async function getInsertMintReqText(query) {
         queryText = queryText + " offset " + query.offset;
 
       } else {
-        var resp = {
-          "message": "invalid ?offset, not numeric."
-        };
-        return new Error(resp, "400", 8)
+        return new Error("invalid ?offset, not numeric.", 400, 8)
       }
 
     }
