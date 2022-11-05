@@ -33,14 +33,6 @@ import ergopayRouter from "./api/ergopay.route"
 import metricsRouter from "./api/metrics.route"
 import utilsRouter from "./api/utils.route"
 
-//var collectionsRouter = require('./routes/collections');
-//var salesRouter = require('./routes/sales');
-//var ergopayRouter = require('./routes/ergopay');
-//var metricsRouter = require('./routes/metrics');
-//var utilsRouter = require('./routes/utils');
-
-// var usersRouter = require('./routes/users');
-
 const app: Application = express();
 
 app.use(compression({ filter: shouldCompress }))
