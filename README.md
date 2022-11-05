@@ -31,11 +31,18 @@ Returns collections by volume, total weekly volume is in nanoergs.
 | limit      | limits rows returned by int provided                                                  | 69, 420                                          |
 
 ## Install -
-clone repo
 
+```bash
+git clone git@github.com:skyharbor-market/backend-skyharbor-ts.git
+```
+
+```bash
 npm install 
+```
 
 ## Run - 
+```bash
 npm run start
+```
 
 will be running on localhost 

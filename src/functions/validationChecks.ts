@@ -73,7 +73,7 @@ export async function checkDbForCollection(coll: any): Promise<boolean> {
 }
 
 
-export async function addressIsValid(addr: any) {
+export async function addressIsValid(addr: any): Promise<boolean> {
 
   let valid = false;
 
