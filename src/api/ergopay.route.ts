@@ -1,6 +1,7 @@
 import express, { Request, Response } from "express"
 import { ergoPayPool } from "../server"
-import { PoolClient, QueryResult } from "pg";
+import { PoolClient, QueryResult } from "pg"
+import { ErgoPayResponse, Severity } from "../classes/ergopay"
 
 const router = express.Router();
 
@@ -41,6 +42,67 @@ router.post('/saveTx', async (req: Request, res: Response) => {
 
 })
 
+router.route("/buyNFT/:txId/:addr").get(async (req: Request, res: Response): Promise<void> => {
+  const txId = req.params.txId || ""
+  const addr = req.params.addr || ""
+  let response = new ErgoPayResponse()
+  let dbResp: QueryResult<any> | number
+
+  const dbQuery = `select tx_data from pay_requests where uuid = '${txId}';`
+
+  try {
+    dbResp = await executeDBQuery(dbQuery);
+  } catch (e) {
+    console.log("error getting txReducedB64safe from DB")
+    response.message = `error getting txReducedB64safe from DB`
+    response.messageSeverity = Severity.ERROR
+    res.status(200).json(response);
+    return
+  }
+
+  if (typeof dbResp === "number") {
+    response.message = `error getting txReducedB64safe from DB`
+    response.messageSeverity = Severity.ERROR
+    res.status(200).json(response);
+    return
+  }
+
+  console.log(dbResp)
+  response.reducedTx = dbResp.rows[0]
+  response.address = addr
+  response.message = `Your NFT purchase is ready to be signed`
+  response.messageSeverity = Severity.INFORMATION
+
+})
+
+async function executeDBQuery(query: string): Promise<QueryResult<any> | number> {
+
+  return new Promise(resolve => {
+
+    ergoPayPool.connect(async (err: Error, client: PoolClient, release: any) => {
+      if (err) throw err;
+
+      console.log("query text: " + query);
+
+      if (typeof query !== "number") {
+        client
+          .query(query)
+          .then(res => {
+            release();
+            resolve(res);
+          })
+          .catch(e => {
+            release();
+            console.error(e.stack)
+            resolve(500000);
+          })
+      } else { //rtn error code
+        release()
+        resolve(query);
+      }
+    })
+  });
+}
 
 async function saveTx(body: any, query: any): Promise<QueryResult<any> | number> {
 
@@ -88,7 +150,7 @@ async function getTxDataQueryText(body: any, query: any): Promise<string | numbe
     } else if (body.txData === undefined) {
       return 400003
     } else {
-      queryText = `insert into pay_requests values (default,$$${query.uuid}$$,$$${body.txData}$$,current_timestamp) ;`
+      queryText = `insert into pay_requests values (default,$$${body.txId}$$,$$${body.txData}$$,current_timestamp) ;`
 
     }
     return queryText
@@ -160,7 +222,6 @@ async function saveSession(body: any, query: any): Promise<QueryResult<any> | nu
     })
   });
 }
-
 
 async function getSaveSessionQueryText(body: any, query: any): Promise<string | number> {
 
