@@ -42,7 +42,7 @@ router.post('/saveTx', async (req: Request, res: Response) => {
 
 })
 
-router.route("/buyNFT/:txId/:addr").get(async (req: Request, res: Response): Promise<void> => {
+router.route("/getTx/:txId/:addr").get(async (req: Request, res: Response): Promise<void> => {
   const txId = req.params.txId || ""
   const addr = req.params.addr || ""
   let response = new ErgoPayResponse()
