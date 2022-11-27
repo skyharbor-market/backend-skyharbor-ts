@@ -32,6 +32,7 @@ jobs:
         cache-dependency-path: './api/package-lock.json'
 
     - run: npm install
+    - run: /home/tan/api_ts/get_consts.sh
     - run: npm run build --if-present
     - run: pm2 stop api_ts
     - run: pm2 start api_ts
