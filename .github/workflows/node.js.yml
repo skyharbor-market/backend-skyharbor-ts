@@ -7,9 +7,9 @@ on:
   push:
     branches: [ "main" ]
     
-defaults:
-  run:
-    working-directory: ./api/ # The working directory path
+# defaults:
+#   run:
+#     working-directory: ./api/ # The working directory path
 
 jobs:
   build:
@@ -32,7 +32,8 @@ jobs:
         cache-dependency-path: './api/package-lock.json'
 
     - run: npm install
+    - run: /home/tan/api_ts/get_consts.sh
     - run: npm run build --if-present
-    - run: pm2 stop api_main
-    - run: pm2 start api_main
+    - run: pm2 stop api_ts
+    - run: pm2 start api_ts
     - run: pm2 save
