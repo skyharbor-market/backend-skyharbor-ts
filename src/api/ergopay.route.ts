@@ -2,14 +2,28 @@ import express, { Request, Response } from "express"
 import { ergoPayPool } from "../server"
 import { PoolClient, QueryResult } from "pg"
 import { ErgoPayResponse, Severity } from "../classes/ergopay"
+import cors from "cors"
 
 const router = express.Router();
 
 // router.get('/schema', async (req: Request, res: Response) => {
 // })
 
+const origins = ['https://skyharbor.io', 'http://localhost:3000', 'http://127.0.0.1:3000', 'https://testapi.skyharbor.io']
+const options: cors.CorsOptions = {
+  allowedHeaders: [
+    'Origin',
+    'X-Requested-With',
+    'Content-Type',
+    'Accept',
+  ],
+  methods: 'GET,OPTIONS,POST',
+  origin: origins,
+  preflightContinue: false,
+};
+//router.options('*', cors(options));
 
-router.post('/saveTx', async (req: Request, res: Response) => {
+router.post('/saveTx', cors(options), async (req: Request, res: Response) => {
 
   let resp = await saveTx(req.body, req.query);
 
@@ -42,7 +56,7 @@ router.post('/saveTx', async (req: Request, res: Response) => {
 
 })
 
-router.route("/getTx/:txId/:addr").get(async (req: Request, res: Response): Promise<void> => {
+router.route("/getTx/:txId/:addr").get(cors(options), async (req: Request, res: Response): Promise<void> => {
   const txId = req.params.txId || ""
   const addr = req.params.addr || ""
   let response = new ErgoPayResponse()

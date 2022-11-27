@@ -82,12 +82,6 @@ app.use(logger('dev'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
-const origins = ['skyharbor.io', 'localhost', '127.0.0.1']
-app.use(function (req: Request, res: Response, next) {
-  res.header('Access-Control-Allow-Origin', origins);
-  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
-  next();
-});
 app.use(express.static(path.join(__dirname, 'public')));
 
 
