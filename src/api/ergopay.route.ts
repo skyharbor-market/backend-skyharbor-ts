@@ -21,7 +21,9 @@ const options: cors.CorsOptions = {
   origin: origins,
   preflightContinue: false,
 };
-//router.options('*', cors(options));
+router.options('*', cors(options), async (req: Request, res: Response) => {
+  res.status(200);
+});
 
 router.post('/saveTx', cors(options), async (req: Request, res: Response) => {
 
@@ -76,6 +78,13 @@ router.route("/getTx/:txId/:addr").get(cors(options), async (req: Request, res: 
 
   if (typeof dbResp === "number") {
     response.message = `error getting txReducedB64safe from DB`
+    response.messageSeverity = Severity.ERROR
+    res.status(200).json(response);
+    return
+  }
+
+  if (dbResp.rows.length == 0) {
+    response.message = `Tx ${txId} is missing from the DB`
     response.messageSeverity = Severity.ERROR
     res.status(200).json(response);
     return
