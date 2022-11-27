@@ -58,6 +58,67 @@ router.post('/saveTx', cors(options), async (req: Request, res: Response) => {
 
 })
 
+router.route("/setAddr/:uuid/:addr").get(cors(options), async (req: Request, res: Response): Promise<void> => {
+  const uuid = req.params.uuid || ""
+  const addr = req.params.addr || ""
+  let response = new ErgoPayResponse()
+  let dbResp: QueryResult<any> | number
+
+  const dbQuery = `insert into active_sessions values (default,$$${uuid}$$,current_timestamp,$$${addr}$$) on conflict on constraint uuid do update set last_connect_time = current_timestamp, default_wallet_address = $$${addr}$$;`
+
+  try {
+    dbResp = await executeDBQuery(dbQuery);
+  } catch (e) {
+    console.log("error saving ergopay wallet address to DB")
+    response.message = `error saving ergopay wallet address to DB`
+    response.messageSeverity = Severity.ERROR
+    res.status(200).json(response);
+    return
+  }
+
+  if (typeof dbResp === "number") {
+    response.message = `error saving ergopay wallet address to DB`
+    response.messageSeverity = Severity.ERROR
+    res.status(200).json(response);
+    return
+  }
+
+  response.address = addr
+  response.message = `Successfully connected wallet address ${addr} to SkyHarbor.\n\nYou can now continue using the NFT Market Place.`
+  response.messageSeverity = Severity.INFORMATION
+
+})
+
+router.route("/getWalletAddr/:uuid").get(cors(options), async (req: Request, res: Response): Promise<void> => {
+  const uuid = req.params.uuid || ""
+  let addr = ""
+  let dbResp: QueryResult<any> | number
+
+  const dbQuery = `select default_wallet_address from active_sessions where uuid = '${uuid}';`
+
+  try {
+    dbResp = await executeDBQuery(dbQuery);
+  } catch (e) {
+    console.log("error getting client wallet address from DB")
+    res.status(200).json({ error: "error getting client wallet address from DB", walletAddr: "" });
+    return
+  }
+
+  if (typeof dbResp === "number") {
+    res.status(200).json({ error: "error getting client wallet address from DB", walletAddr: "" });
+    return
+  }
+
+  if (dbResp.rows.length === 0) {
+    res.status(200).json({ error: `client wallet address for uuid ${uuid} is missing from DB`, walletAddr: "" });
+    return
+  }
+
+  console.log(dbResp)
+  res.status(200).json({ error: "", walletAddr: dbResp.rows[0] });
+
+})
+
 router.route("/getTx/:txId/:addr").get(cors(options), async (req: Request, res: Response): Promise<void> => {
   const txId = req.params.txId || ""
   const addr = req.params.addr || ""
@@ -83,7 +144,7 @@ router.route("/getTx/:txId/:addr").get(cors(options), async (req: Request, res: 
     return
   }
 
-  if (dbResp.rows.length == 0) {
+  if (dbResp.rows.length === 0) {
     response.message = `Tx ${txId} is missing from the DB`
     response.messageSeverity = Severity.ERROR
     res.status(200).json(response);
