@@ -47,7 +47,7 @@ function shouldCompress(req: Request, res: Response) {
   return compression.filter(req, res)
 }
 
-app.use(cors());
+// app.use(cors());
 
 const sApiPool = new Pool({
   host: "localhost",
