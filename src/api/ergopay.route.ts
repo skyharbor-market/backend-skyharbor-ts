@@ -157,6 +157,7 @@ router.route("/getTx/:txId/:addr").get(cors(options), async (req: Request, res: 
   response.address = addr
   response.message = `Your NFT purchase is ready to be signed`
   response.messageSeverity = Severity.INFORMATION
+  res.status(200).json(response);
 
 })
 
