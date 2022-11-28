@@ -76,6 +76,8 @@ router.route("/setAddr/:uuid/:addr").get(cors(options), async (req: Request, res
     return
   }
 
+  console.log(dbResp)
+
   if (typeof dbResp === "number") {
     response.message = `error saving ergopay wallet address to DB`
     response.messageSeverity = Severity.ERROR
