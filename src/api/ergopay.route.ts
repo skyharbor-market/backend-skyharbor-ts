@@ -179,7 +179,7 @@ router.route("/signed").post(cors(options), async (req: Request, res: Response):
     return
   }
 
-  const dbQuery = `update pay_requests set signed = true where txId = '${reply.txId}';`
+  const dbQuery = `update pay_requests set signed = true where tx_id = '${reply.txId}';`
 
   try {
     dbResp = await executeDBQuery(dbQuery);
