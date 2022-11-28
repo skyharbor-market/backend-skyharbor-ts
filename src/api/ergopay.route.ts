@@ -84,7 +84,7 @@ router.route("/setAddr/:uuid/:addr").get(cors(options), async (req: Request, res
   }
 
   response.address = addr
-  response.message = `Successfully connected wallet address ${addr} to SkyHarbor.\n\nYou can now continue using the NFT Market Place.`
+  response.message = `Successfully connected wallet address ${addr} to SkyHarbor.\n\nYou can now continue using Ergo's #1 Marketplace.`
   response.messageSeverity = Severity.INFORMATION
   res.status(200).json(response);
 
