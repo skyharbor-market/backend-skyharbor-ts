@@ -1,7 +1,7 @@
 import express, { Request, Response } from "express"
 import { ergoPayPool } from "../server"
 import { PoolClient, QueryResult } from "pg"
-import { ErgoPayResponse, Severity } from "../classes/ergopay"
+import { ErgoPayResponse, Severity, ErgoPayReply } from "../classes/ergopay"
 import cors from "cors"
 
 const router = express.Router();
@@ -156,6 +156,50 @@ router.route("/getTx/:txId/:addr").get(cors(options), async (req: Request, res: 
   response.reducedTx = dbResp.rows[0]
   response.address = addr
   response.message = `Your NFT purchase is ready to be signed`
+  response.messageSeverity = Severity.INFORMATION
+  response.replyTo = `https://testapi.skyharbor.io/api/ergopay/signed`
+  res.status(200).json(response);
+
+})
+
+router.route("/signed").post(cors(options), async (req: Request, res: Response): Promise<void> => {
+  const txId = req.params.txId || ""
+  let response = new ErgoPayResponse()
+  let reply = {} as ErgoPayReply
+  let dbResp: QueryResult<any> | number
+
+  console.log(req)
+  try {
+    reply = req.body as ErgoPayReply
+  } catch (e) {
+    console.log("failed to parse ErgoPayReply")
+    response.message = `failed to parse ErgoPayReply, this doesn't mean your transaction failed.`
+    response.messageSeverity = Severity.ERROR
+    res.status(200).json(response);
+    return
+  }
+
+  const dbQuery = `update pay_requests set signed = true where txId = '${reply.txId}';`
+
+  try {
+    dbResp = await executeDBQuery(dbQuery);
+  } catch (e) {
+    console.log("error updating signed column in DB")
+    response.message = `error updating signed column in DB`
+    response.messageSeverity = Severity.ERROR
+    res.status(200).json(response);
+    return
+  }
+
+  if (typeof dbResp === "number") {
+    response.message = `error updating signed column in DB`
+    response.messageSeverity = Severity.ERROR
+    res.status(200).json(response);
+    return
+  }
+
+  console.log(dbResp)
+  response.message = `Thank you for your purchase!`
   response.messageSeverity = Severity.INFORMATION
   res.status(200).json(response);
 
