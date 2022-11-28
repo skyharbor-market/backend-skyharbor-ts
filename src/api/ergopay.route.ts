@@ -77,13 +77,14 @@ router.route("/setAddr/:uuid/:addr").get(cors(options), async (req: Request, res
   }
 
   console.log(dbResp)
+  console.log((typeof dbResp === "number"))
 
-  if (typeof dbResp === "number") {
-    response.message = `error saving ergopay wallet address to DB`
-    response.messageSeverity = Severity.ERROR
-    res.status(200).json(response);
-    return
-  }
+  //if (typeof dbResp === "number") {
+  //  response.message = `error saving ergopay wallet address to DB`
+  //  response.messageSeverity = Severity.ERROR
+  //  res.status(200).json(response);
+  //  return
+  //}
 
   response.address = addr
   response.message = `Successfully connected wallet address ${addr} to SkyHarbor.\n\nYou can now continue using the NFT Market Place.`
