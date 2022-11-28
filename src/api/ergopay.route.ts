@@ -64,7 +64,7 @@ router.route("/setAddr/:uuid/:addr").get(cors(options), async (req: Request, res
   let response = new ErgoPayResponse()
   let dbResp: QueryResult<any> | number
 
-  const dbQuery = `insert into active_sessions values (default,$$${uuid}$$,current_timestamp,$$${addr}$$) on conflict on constraint uuid do update set last_connect_time = current_timestamp, default_wallet_address = $$${addr}$$;`
+  const dbQuery = `insert into active_sessions values (default,$$${uuid}$$,current_timestamp,$$${addr}$$) on conflict on constraint unique_uuid do update set last_connect_time = current_timestamp, wallet_address = $$${addr}$$;`
 
   try {
     dbResp = await executeDBQuery(dbQuery);
@@ -94,7 +94,7 @@ router.route("/getWalletAddr/:uuid").get(cors(options), async (req: Request, res
   let addr = ""
   let dbResp: QueryResult<any> | number
 
-  const dbQuery = `select default_wallet_address from active_sessions where uuid = '${uuid}';`
+  const dbQuery = `select wallet_address from active_sessions where uuid = '${uuid}';`
 
   try {
     dbResp = await executeDBQuery(dbQuery);
