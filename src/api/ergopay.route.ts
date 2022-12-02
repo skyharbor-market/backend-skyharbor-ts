@@ -126,7 +126,7 @@ router.route("/getTx/:txId/:addr").get(cors(options), async (req: Request, res: 
   let response = new ErgoPayResponse()
   let dbResp: QueryResult<any> | number
 
-  const dbQuery = `select tx_data from pay_requests where uuid = '${txId}';`
+  const dbQuery = `select tx_data from pay_requests where tx_id = '${txId}';`
 
   try {
     dbResp = await executeDBQuery(dbQuery);
@@ -280,7 +280,7 @@ async function getTxDataQueryText(body: any, query: any): Promise<string | numbe
     } else if (body.txData === undefined) {
       return 400003
     } else {
-      queryText = `insert into pay_requests values (default,$$${body.txId}$$,$$${body.txData}$$,current_timestamp) ;`
+      queryText = `insert into pay_requests values (default,$$${body.uuid}$$,$$${body.txData}$$,current_timestamp,$$${body.txId}$$) ;`
 
     }
     return queryText
