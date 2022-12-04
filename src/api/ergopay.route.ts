@@ -159,7 +159,7 @@ router.route("/getTx/:txId/:addr").get(cors(options), async (req: Request, res: 
   }
 
   console.log(dbResp)
-  response.reducedTx = dbResp.rows[0]
+  response.reducedTx = dbResp.rows[0].tx_data
   response.address = addr
   response.message = `Your NFT purchase is ready to be signed`
   response.messageSeverity = Severity.INFORMATION
