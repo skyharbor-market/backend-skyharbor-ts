@@ -39,10 +39,16 @@ router.post('/saveTx', cors(options), async (req: Request, res: Response) => {
         res.send({ "message": "no ?query params given." });
       } else if (resp === 400002) {
         res.status(400);
-        res.send({ "message": "no ?uuid query param given." });
+        res.send({ "message": "body.uuid missing in POST payload." });
       } else if (resp === 400003) {
         res.status(400);
         res.send({ "message": "no ?body supplied." });
+      } else if (resp === 400004) {
+        res.status(400);
+        res.send({ "message": "body.txData missing in POST payload." });
+      } else if (resp === 400005) {
+        res.status(400);
+        res.send({ "message": "body.txId missing in POST payload." });
       } else if (resp === 500000) {
         res.status(500);
         res.send({ "message": "Call failed, can devs do something?!" });
@@ -273,12 +279,14 @@ async function getTxDataQueryText(body: any, query: any): Promise<string | numbe
   if (typeof query === "undefined") {
     return 400001
   } else {
-    if (query.uuid === undefined) {
+    if (body.uuid === undefined) {
       return 400002
     } else if (body === undefined) {
       return 400003
     } else if (body.txData === undefined) {
-      return 400003
+      return 400004
+    } else if (body.txId === undefined) {
+      return 400005
     } else {
       queryText = `insert into pay_requests values (default,$$${body.uuid}$$,$$${body.txData}$$,current_timestamp,$$${body.txId}$$) ;`
 
