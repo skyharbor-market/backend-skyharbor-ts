@@ -276,23 +276,23 @@ async function getTxDataQueryText(body: any, query: any): Promise<string | numbe
 
   let queryText = ""
 
-  if (typeof query === "undefined") {
-    return 400001
+  //if (typeof query === "undefined") {
+  //  return 400001
+  //} else {
+  if (body.uuid === undefined) {
+    return 400002
+  } else if (body === undefined) {
+    return 400003
+  } else if (body.txData === undefined) {
+    return 400004
+  } else if (body.txId === undefined) {
+    return 400005
   } else {
-    if (body.uuid === undefined) {
-      return 400002
-    } else if (body === undefined) {
-      return 400003
-    } else if (body.txData === undefined) {
-      return 400004
-    } else if (body.txId === undefined) {
-      return 400005
-    } else {
-      queryText = `insert into pay_requests values (default,$$${body.uuid}$$,$$${body.txData}$$,current_timestamp,$$${body.txId}$$) ;`
+    queryText = `insert into pay_requests values (default,$$${body.uuid}$$,$$${body.txData}$$,current_timestamp,$$${body.txId}$$) ;`
 
-    }
-    return queryText
   }
+  return queryText
+  //}
 }
 
 
