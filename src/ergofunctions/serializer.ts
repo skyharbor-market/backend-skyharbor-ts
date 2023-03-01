@@ -65,6 +65,15 @@ export async function decodeStr(str: any) {
   return new TextDecoder().decode((await ergolib).Constant.decode_from_base16(str).to_byte_array())
 }
 
+export function byteArrayToBase64(byteArray: any) {
+  var binary = '';
+  var len = byteArray.byteLength;
+  for (var i = 0; i < len; i++) {
+    binary += String.fromCharCode(byteArray[i]);
+  }
+  return btoa(binary);
+}
+
 export function resolveIpfs(url: any, isVideo = false) {
   const ipfsPrefix = 'ipfs://'
   if (!url.startsWith(ipfsPrefix)) return url

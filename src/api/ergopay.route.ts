@@ -3,6 +3,17 @@ import { ergoPayPool } from "../server"
 import { PoolClient, QueryResult } from "pg"
 import { ErgoPayResponse, Severity, ErgoPayReply } from "../classes/ergopay"
 import cors from "cors"
+import { byteArrayToBase64 } from "../ergofunctions/serializer"
+import { getLastHeaders } from "../ergofunctions/explorer"
+import JSONBigInt from "json-bigint"
+import {
+  BlockHeaders,
+  ErgoBoxes,
+  ErgoStateContext,
+  PreHeader,
+  ReducedTransaction,
+  UnsignedTransaction
+} from "ergo-lib-wasm-nodejs"
 
 const router = express.Router();
 
@@ -276,9 +287,6 @@ async function getTxDataQueryText(body: any, query: any): Promise<string | numbe
 
   let queryText = ""
 
-  //if (typeof query === "undefined") {
-  //  return 400001
-  //} else {
   if (body.uuid === undefined) {
     return 400002
   } else if (body === undefined) {
@@ -288,11 +296,24 @@ async function getTxDataQueryText(body: any, query: any): Promise<string | numbe
   } else if (body.txId === undefined) {
     return 400005
   } else {
-    queryText = `insert into pay_requests values (default,$$${body.uuid}$$,$$${body.txData}$$,current_timestamp,$$${body.txId}$$) ;`
+    // reduce base64 the tx before saving to the DB
+    const bodyParam = JSONBigInt.parse(body.txData)
+    const unsignedTx = UnsignedTransaction.from_json(JSONBigInt.stringify(bodyParam))
+    const inputBoxes = ErgoBoxes.from_boxes_json(bodyParam.inputs)
+    const inputDataBoxes = ErgoBoxes.from_boxes_json(bodyParam.dataInputs)
+
+    const block_headers = BlockHeaders.from_json(await getLastHeaders())
+    const pre_header = PreHeader.from_block_header(block_headers.get(0))
+    const ctx = new ErgoStateContext(pre_header, block_headers)
+
+    const reducedTx = ReducedTransaction.from_unsigned_tx(unsignedTx, inputBoxes, inputDataBoxes, ctx)
+    const txReducedBase64 = byteArrayToBase64(reducedTx.sigma_serialize_bytes())
+    const ergoPayTx = txReducedBase64.replace(/\//g, '_').replace(/\+/g, '-')
+
+    queryText = `insert into pay_requests values (default,$$${body.uuid}$$,$$${ergoPayTx}$$,current_timestamp,$$${body.txId}$$) ;`
 
   }
   return queryText
-  //}
 }
 
 

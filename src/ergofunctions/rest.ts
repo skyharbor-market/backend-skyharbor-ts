@@ -1,3 +1,5 @@
+import fetch from "node-fetch"
+
 export async function post(url: any, body = {}, apiKey = '') {
   return await fetch(url, {
     method: 'POST',
@@ -7,18 +9,20 @@ export async function post(url: any, body = {}, apiKey = '') {
       api_key: apiKey,
     },
     body: JSON.stringify(body),
-  }).catch((error) => {
-    console.log(error)
-  });
+  })
 }
 export async function get(url: any, apiKey = '') {
-  return await fetch(url, {
-    headers: {
-      Accept: 'application/json',
-      'Content-Type': 'application/json',
-      api_key: apiKey,
-    },
-  }).catch((error) => {
-    console.log(error)
-  });;
+  try {
+    const result = await fetch(url, {
+      headers: {
+        Accept: 'application/json',
+        'Content-Type': 'application/json',
+        api_key: apiKey,
+      }
+    }).then(res => res.json())
+    return result
+  } catch (e) {
+    console.error(e)
+    return []
+  }
 }
