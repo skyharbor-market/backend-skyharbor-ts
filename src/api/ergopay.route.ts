@@ -310,7 +310,7 @@ async function getTxDataQueryText(body: any, query: any): Promise<string | numbe
     const reducedTx = ReducedTransaction.from_unsigned_tx(unsignedTx, inputBoxes, inputDataBoxes, ctx)
     console.log("reducedTx", reducedTx)
 
-    const txReducedBase64 = byteArrayToBase64(reducedTx.sigma_serialize_bytes())
+    const txReducedBase64 = Buffer.from(reducedTx.sigma_serialize_bytes()).toString('base64');    //byteArrayToBase64(reducedTx.sigma_serialize_bytes())
     const ergoPayTx = txReducedBase64.replace(/\//g, '_').replace(/\+/g, '-')
 
     console.log("ergoPayTx", ergoPayTx)
