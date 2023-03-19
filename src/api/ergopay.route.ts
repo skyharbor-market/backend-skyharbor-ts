@@ -14,6 +14,7 @@ import {
   ReducedTransaction,
   UnsignedTransaction
 } from "ergo-lib-wasm-nodejs"
+import base64url from "base64url";
 
 const router = express.Router();
 
@@ -306,14 +307,16 @@ async function getTxDataQueryText(body: any, query: any): Promise<string | numbe
     const pre_header = PreHeader.from_block_header(block_headers.get(0))
     const ctx = new ErgoStateContext(pre_header, block_headers)
 
-    const reducedTx = ReducedTransaction.reduce_tx(unsignedTx, ctx)
-    const txReducedBase64 = byteArrayToBase64(reducedTx.sigma_serialize_bytes())
-    const ergoPayTx = txReducedBase64.replace(/\//g, '_').replace(/\+/g, '-')
+    const reducedTx = ReducedTransaction.from_unsigned_tx(unsignedTx, inputBoxes, inputDataBoxes, ctx)
+    // const txReducedBase64 = byteArrayToBase64(reducedTx.sigma_serialize_bytes())
+    const txReducedBase64 = base64url.toBase64(Buffer.from(reducedTx.sigma_serialize_bytes()).toString('base64'))
+
+    // const ergoPayTx = txReducedBase64.replace(/\//g, '_').replace(/\+/g, '-')
 
     // split by chunk of 1000 char to generate the QR codes
-    const ergoPayMatched = ergoPayTx.match(/.{1,1000}/g)
+    // const ergoPayMatched = ergoPayTx.match(/.{1,1000}/g)
 
-    queryText = `insert into pay_requests values (default,$$${body.uuid}$$,$$${ergoPayMatched}$$,current_timestamp,$$${body.txId}$$) ;`
+    queryText = `insert into pay_requests values (default,$$${body.uuid}$$,$$${txReducedBase64}$$,current_timestamp,$$${body.txId}$$) ;`
 
   }
   return queryText
