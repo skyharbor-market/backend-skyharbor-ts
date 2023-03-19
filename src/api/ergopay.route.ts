@@ -304,6 +304,8 @@ async function getTxDataQueryText(body: any, query: any): Promise<[string, strin
     const inputBoxes = ErgoBoxes.from_boxes_json(bodyParam.inputs)
     const inputDataBoxes = ErgoBoxes.from_boxes_json(bodyParam.dataInputs)
 
+    txId = unsignedTx.id().to_str()
+
     const block_headers = BlockHeaders.from_json(await getLastHeaders())
     const pre_header = PreHeader.from_block_header(block_headers.get(0))
     const ctx = new ErgoStateContext(pre_header, block_headers)
@@ -313,9 +315,7 @@ async function getTxDataQueryText(body: any, query: any): Promise<[string, strin
     const txReducedBase64 = Buffer.from(reducedTx.sigma_serialize_bytes()).toString('base64');    //byteArrayToBase64(reducedTx.sigma_serialize_bytes())
     const ergoPayTx = txReducedBase64.replace(/\//g, '_').replace(/\+/g, '-')
 
-    queryText = `insert into pay_requests values (default,$$${body.uuid}$$,$$${ergoPayTx}$$,current_timestamp,$$${body.txId}$$) ;`
-
-    txId = unsignedTx.id().to_str()
+    queryText = `insert into pay_requests values (default,$$${body.uuid}$$,$$${ergoPayTx}$$,current_timestamp,$$${txId}$$) ;`
 
   }
   return [txId, queryText]
