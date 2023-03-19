@@ -311,9 +311,9 @@ async function getTxDataQueryText(body: any, query: any): Promise<string | numbe
     const ergoPayTx = txReducedBase64.replace(/\//g, '_').replace(/\+/g, '-')
 
     // split by chunk of 1000 char to generate the QR codes
-    //const ergoPayMatched = ergoPayTx.match(/.{1,1000}/g)
+    const ergoPayMatched = ergoPayTx.match(/.{1,1000}/g)
 
-    queryText = `insert into pay_requests values (default,$$${body.uuid}$$,$$${ergoPayTx}$$,current_timestamp,$$${body.txId}$$) ;`
+    queryText = `insert into pay_requests values (default,$$${body.uuid}$$,$$${ergoPayMatched}$$,current_timestamp,$$${body.txId}$$) ;`
 
   }
   return queryText
