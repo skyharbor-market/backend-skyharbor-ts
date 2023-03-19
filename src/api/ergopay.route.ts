@@ -57,9 +57,6 @@ router.post('/saveTx', cors(options), async (req: Request, res: Response) => {
       } else if (resp === 400004) {
         res.status(400);
         res.send({ "message": "body.txData missing in POST payload." });
-      } else if (resp === 400005) {
-        res.status(400);
-        res.send({ "message": "body.txId missing in POST payload." });
       } else if (resp === 500000) {
         res.status(500);
         res.send({ "message": "Call failed, can devs do something?!" });
@@ -295,8 +292,6 @@ async function getTxDataQueryText(body: any, query: any): Promise<[string, strin
     return [txId, 400003]
   } else if (body.txData === undefined) {
     return [txId, 400004]
-  } else if (body.txId === undefined) {
-    return [txId, 400005]
   } else {
     // reduce base64 the tx before saving to the DB
     const bodyParam = JSONBigInt.parse(body.txData)
