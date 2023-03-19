@@ -266,21 +266,24 @@ async function saveTx(body: any, query: any): Promise<string | number> {
         try {
           res = await client.query(`select tx_id, signed from pay_requests where tx_id = '${txId}';`)
           if (res.rowCount > 0) {
+            console.log("found duplicate(s) for txId: " + txId);
             release()
             resolve(txId)
+          } else {
+            // Add new reduced tx to DB
+            console.log("adding ergopay tx data for txId: " + txId);
+            client
+              .query(queryText)
+              .then(res => {
+                release();
+                resolve(txId);
+              })
+              .catch(e => {
+                release();
+                console.error(e.stack)
+                resolve(500000);
+              })
           }
-          // Add new reduced tx to DB
-          client
-            .query(queryText)
-            .then(res => {
-              release();
-              resolve(txId);
-            })
-            .catch(e => {
-              release();
-              console.error(e.stack)
-              resolve(500000);
-            })
         } catch (e) {
           release();
           console.error(e.stack)
