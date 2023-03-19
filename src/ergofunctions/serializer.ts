@@ -73,7 +73,6 @@ export function byteArrayToBase64(byteArray: any) {
   for (var i = 0; i < len; i++) {
     binary += String.fromCharCode(byteArray[i]);
   }
-  //return base64url(Buffer.from(binary).toString('base64'))
   return Buffer.from(binary).toString('base64')
 }
 
