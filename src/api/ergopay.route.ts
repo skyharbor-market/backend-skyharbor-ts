@@ -309,7 +309,7 @@ async function getTxDataQueryText(body: any, query: any): Promise<string | numbe
 
     const reducedTx = ReducedTransaction.from_unsigned_tx(unsignedTx, inputBoxes, inputDataBoxes, ctx)
     // const txReducedBase64 = byteArrayToBase64(reducedTx.sigma_serialize_bytes())
-    const txReducedBase64 = base64url.encode(Buffer.from(reducedTx.sigma_serialize_bytes()).toString('ascii'))
+    const txReducedBase64 = padBase64String(base64url.encode(Buffer.from(reducedTx.sigma_serialize_bytes()).toString('ascii')))
 
     // const ergoPayTx = txReducedBase64.replace(/\//g, '_').replace(/\+/g, '-')
 
@@ -321,6 +321,13 @@ async function getTxDataQueryText(body: any, query: any): Promise<string | numbe
   }
   return queryText
 }
+
+function padBase64String(base64String: string) {
+  const paddingSize = 4 - (base64String.length % 4);
+  const padding = paddingSize === 4 ? '' : '='.repeat(paddingSize);
+  return base64String + padding;
+}
+
 
 
 router.post('/saveSession', async (req: Request, res: Response) => {
