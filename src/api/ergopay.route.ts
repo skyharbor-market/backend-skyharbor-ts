@@ -66,7 +66,8 @@ router.post('/saveTx', cors(options), async (req: Request, res: Response) => {
       }
     } else {
       res.status(200);
-      res.send(resp.rows);
+      // send txId back
+      res.send(resp);
     }
   } else {
     res.status(500);
@@ -251,14 +252,14 @@ async function executeDBQuery(query: string): Promise<QueryResult<any> | number>
   });
 }
 
-async function saveTx(body: any, query: any): Promise<QueryResult<any> | number> {
+async function saveTx(body: any, query: any): Promise<string | number> {
 
   return new Promise(resolve => {
 
     ergoPayPool.connect(async (err: Error, client: PoolClient, release: any) => {
       if (err) throw err;
 
-      let queryText = await getTxDataQueryText(body, query);
+      let [txId, queryText] = await getTxDataQueryText(body, query);
 
       console.log("query text: " + queryText);
 
@@ -267,7 +268,7 @@ async function saveTx(body: any, query: any): Promise<QueryResult<any> | number>
           .query(queryText)
           .then(res => {
             release();
-            resolve(res);
+            resolve(txId);
           })
           .catch(e => {
             release();
@@ -283,22 +284,22 @@ async function saveTx(body: any, query: any): Promise<QueryResult<any> | number>
 }
 
 
-async function getTxDataQueryText(body: any, query: any): Promise<string | number> {
+async function getTxDataQueryText(body: any, query: any): Promise<[string, string | number]> {
 
   let queryText = ""
+  let txId = ""
 
   if (body.uuid === undefined) {
-    return 400002
+    return [txId, 400002]
   } else if (body === undefined) {
-    return 400003
+    return [txId, 400003]
   } else if (body.txData === undefined) {
-    return 400004
+    return [txId, 400004]
   } else if (body.txId === undefined) {
-    return 400005
+    return [txId, 400005]
   } else {
     // reduce base64 the tx before saving to the DB
     const bodyParam = JSONBigInt.parse(body.txData)
-    console.log("body.txData", body.txData)
     const unsignedTx = UnsignedTransaction.from_json(JSONBigInt.stringify(bodyParam))
     const inputBoxes = ErgoBoxes.from_boxes_json(bodyParam.inputs)
     const inputDataBoxes = ErgoBoxes.from_boxes_json(bodyParam.dataInputs)
@@ -308,21 +309,16 @@ async function getTxDataQueryText(body: any, query: any): Promise<string | numbe
     const ctx = new ErgoStateContext(pre_header, block_headers)
 
     const reducedTx = ReducedTransaction.from_unsigned_tx(unsignedTx, inputBoxes, inputDataBoxes, ctx)
-    console.log("reducedTx", reducedTx)
 
     const txReducedBase64 = Buffer.from(reducedTx.sigma_serialize_bytes()).toString('base64');    //byteArrayToBase64(reducedTx.sigma_serialize_bytes())
     const ergoPayTx = txReducedBase64.replace(/\//g, '_').replace(/\+/g, '-')
 
-    console.log("ergoPayTx", ergoPayTx)
-
-
-    // split by chunk of 1000 char to generate the QR codes
-    // const ergoPayMatched = ergoPayTx.match(/.{1,1000}/g)
-
     queryText = `insert into pay_requests values (default,$$${body.uuid}$$,$$${ergoPayTx}$$,current_timestamp,$$${body.txId}$$) ;`
 
+    txId = unsignedTx.id().to_str()
+
   }
-  return queryText
+  return [txId, queryText]
 }
 
 
