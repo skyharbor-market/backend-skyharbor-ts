@@ -14,7 +14,6 @@ import {
   ReducedTransaction,
   UnsignedTransaction
 } from "ergo-lib-wasm-nodejs"
-import base64url from "base64url";
 
 const router = express.Router();
 
@@ -299,7 +298,7 @@ async function getTxDataQueryText(body: any, query: any): Promise<string | numbe
   } else {
     // reduce base64 the tx before saving to the DB
     const bodyParam = JSONBigInt.parse(body.txData)
-    const unsignedTx = UnsignedTransaction.from_json(JSONBigInt.stringify(bodyParam))
+    const unsignedTx = UnsignedTransaction.from_json(bodyParam)
     const inputBoxes = ErgoBoxes.from_boxes_json(bodyParam.inputs)
     const inputDataBoxes = ErgoBoxes.from_boxes_json(bodyParam.dataInputs)
 
@@ -308,26 +307,17 @@ async function getTxDataQueryText(body: any, query: any): Promise<string | numbe
     const ctx = new ErgoStateContext(pre_header, block_headers)
 
     const reducedTx = ReducedTransaction.from_unsigned_tx(unsignedTx, inputBoxes, inputDataBoxes, ctx)
-    // const txReducedBase64 = byteArrayToBase64(reducedTx.sigma_serialize_bytes())
-    const txReducedBase64 = padBase64String(base64url.encode(Buffer.from(reducedTx.sigma_serialize_bytes()).toString('ascii')))
-
-    // const ergoPayTx = txReducedBase64.replace(/\//g, '_').replace(/\+/g, '-')
+    const txReducedBase64 = byteArrayToBase64(reducedTx.sigma_serialize_bytes())
+    const ergoPayTx = txReducedBase64.replace(/\//g, '_').replace(/\+/g, '-')
 
     // split by chunk of 1000 char to generate the QR codes
     // const ergoPayMatched = ergoPayTx.match(/.{1,1000}/g)
 
-    queryText = `insert into pay_requests values (default,$$${body.uuid}$$,$$${txReducedBase64}$$,current_timestamp,$$${body.txId}$$) ;`
+    queryText = `insert into pay_requests values (default,$$${body.uuid}$$,$$${ergoPayTx}$$,current_timestamp,$$${body.txId}$$) ;`
 
   }
   return queryText
 }
-
-function padBase64String(base64String: string) {
-  const paddingSize = 4 - (base64String.length % 4);
-  const padding = paddingSize === 4 ? '' : '='.repeat(paddingSize);
-  return base64String + padding;
-}
-
 
 
 router.post('/saveSession', async (req: Request, res: Response) => {
