@@ -1,4 +1,5 @@
 import { Serializer } from "@coinbarn/ergo-ts/dist/serializer"
+import { Buffer } from "buffer"
 import moment from 'moment';
 import 'moment-duration-format';
 import { Address, AddressKind } from "@coinbarn/ergo-ts/dist/models/address"
@@ -71,7 +72,7 @@ export function byteArrayToBase64(byteArray: any) {
   for (var i = 0; i < len; i++) {
     binary += String.fromCharCode(byteArray[i]);
   }
-  return btoa(binary);
+  return Buffer.from(binary).toString('base64')
 }
 
 export function resolveIpfs(url: any, isVideo = false) {
