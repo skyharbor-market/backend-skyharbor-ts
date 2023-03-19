@@ -298,7 +298,8 @@ async function getTxDataQueryText(body: any, query: any): Promise<string | numbe
   } else {
     // reduce base64 the tx before saving to the DB
     const bodyParam = JSONBigInt.parse(body.txData)
-    const unsignedTx = UnsignedTransaction.from_json(bodyParam)
+    console.log("body.txData", body.txData)
+    const unsignedTx = UnsignedTransaction.from_json(JSONBigInt.stringify(bodyParam))
     const inputBoxes = ErgoBoxes.from_boxes_json(bodyParam.inputs)
     const inputDataBoxes = ErgoBoxes.from_boxes_json(bodyParam.dataInputs)
 
@@ -307,8 +308,13 @@ async function getTxDataQueryText(body: any, query: any): Promise<string | numbe
     const ctx = new ErgoStateContext(pre_header, block_headers)
 
     const reducedTx = ReducedTransaction.from_unsigned_tx(unsignedTx, inputBoxes, inputDataBoxes, ctx)
+    console.log("reducedTx", reducedTx)
+
     const txReducedBase64 = byteArrayToBase64(reducedTx.sigma_serialize_bytes())
     const ergoPayTx = txReducedBase64.replace(/\//g, '_').replace(/\+/g, '-')
+
+    console.log("ergoPayTx", ergoPayTx)
+
 
     // split by chunk of 1000 char to generate the QR codes
     // const ergoPayMatched = ergoPayTx.match(/.{1,1000}/g)
