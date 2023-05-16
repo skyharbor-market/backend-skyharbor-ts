@@ -1,4 +1,6 @@
 import { Serializer } from "@coinbarn/ergo-ts/dist/serializer"
+import { Buffer } from "buffer"
+import base64url from "base64url"
 import moment from 'moment';
 import 'moment-duration-format';
 import { Address, AddressKind } from "@coinbarn/ergo-ts/dist/models/address"
@@ -63,6 +65,15 @@ export async function decodeColTuple(str: any) {
 
 export async function decodeStr(str: any) {
   return new TextDecoder().decode((await ergolib).Constant.decode_from_base16(str).to_byte_array())
+}
+
+export function byteArrayToBase64(byteArray: any) {
+  var binary = '';
+  var len = byteArray.byteLength;
+  for (var i = 0; i < len; i++) {
+    binary += String.fromCharCode(byteArray[i]);
+  }
+  return Buffer.from(binary).toString('base64')
 }
 
 export function resolveIpfs(url: any, isVideo = false) {

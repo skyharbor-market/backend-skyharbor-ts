@@ -8,8 +8,8 @@ const explorer = Explorer.mainnet;
 export const explorerApi = 'https://api.ergoplatform.com/api/v0'
 export const explorerApiV1 = 'https://api.ergoplatform.com/api/v1'
 
-export function getRequest(url: any, api = explorerApi) {
-  return get(api + url).then(res => res?.json())
+export async function getRequest(url: any, api = explorerApiV1) {
+  return await get(api + url)
 }
 
 export async function currentHeight() {
@@ -23,6 +23,13 @@ export async function currentBlock() {
   return getRequest('/blocks?limit=1')
     .then(res => {
       return res.items[0]
+    })
+}
+
+export async function getLastHeaders() {
+  return getRequest('/blocks/headers?limit=10')
+    .then(res => {
+      return res.items
     })
 }
 
@@ -132,3 +139,7 @@ export function sendTx(tx: any) {
 export async function getBalance(addr: any) {
   return getRequest(`/addresses/${addr}/balance/confirmed`, explorerApiV1);
 }
+function res(res: any, arg1: (unknown: any) => any) {
+  throw new Error("Function not implemented.");
+}
+

@@ -47,7 +47,7 @@ function shouldCompress(req: Request, res: Response) {
   return compression.filter(req, res)
 }
 
-app.use(cors());
+// app.use(cors());
 
 const sApiPool = new Pool({
   host: "localhost",
@@ -85,13 +85,13 @@ app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 
 
-app.use('/api/routes', routesRouter);
-app.use('/api/transaction', transactionRouter);
-app.use('/api/collections', collectionsRouter);
-app.use('/api/sales', salesRouter);
+app.use('/api/routes', cors(), routesRouter);
+app.use('/api/transaction', cors(), transactionRouter);
+app.use('/api/collections', cors(), collectionsRouter);
+app.use('/api/sales', cors(), salesRouter);
 app.use('/api/ergopay', ergopayRouter);
-app.use('/api/metrics', metricsRouter);
-app.use('/api/utils', utilsRouter);
+app.use('/api/metrics', cors(), metricsRouter);
+app.use('/api/utils', cors(),utilsRouter);
 
 // catch 404 and forward to error handler
 app.use(function (req: Request, res: Response, next: NextFunction) {
