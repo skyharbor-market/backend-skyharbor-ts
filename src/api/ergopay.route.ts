@@ -1,6 +1,6 @@
 import express, { Request, Response } from "express"
 import { ergoPayPool } from "../server"
-import { PoolClient, QueryResult } from "pg"
+import { PoolClient, QueryResult, QueryConfig } from "pg"
 import { ErgoPayResponse, Severity, ErgoPayReply } from "../classes/ergopay"
 import cors from "cors"
 import { byteArrayToBase64 } from "../ergofunctions/serializer"
@@ -79,7 +79,10 @@ router.route("/setAddr/:uuid/:addr").get(cors(options), async (req: Request, res
   let response = new ErgoPayResponse()
   let dbResp: QueryResult<any> | number
 
-  const dbQuery = `insert into active_sessions values (default,$$${uuid}$$,current_timestamp,$$${addr}$$) on conflict on constraint unique_uuid do update set last_connect_time = current_timestamp, wallet_address = $$${addr}$$;`
+  const dbQuery: QueryConfig<any[]> = {
+    text: "insert into active_sessions values (default,$1,current_timestamp,$2) on conflict on constraint unique_uuid do update set last_connect_time = current_timestamp, wallet_address = $3",
+    values: [`${uuid}`, `${addr}`, `${addr}`]
+  }
 
   try {
     dbResp = await executeDBQuery(dbQuery);
@@ -110,7 +113,10 @@ router.route("/getWalletAddr/:uuid").get(cors(options), async (req: Request, res
   let addr = ""
   let dbResp: QueryResult<any> | number
 
-  const dbQuery = `select wallet_address from active_sessions where uuid = '${uuid}';`
+  const dbQuery: QueryConfig<any[]> = {
+    text: "select wallet_address from active_sessions where uuid = '$1'",
+    values: [`${uuid}`]
+  }
 
   try {
     dbResp = await executeDBQuery(dbQuery);
@@ -141,7 +147,10 @@ router.route("/getTx/:txId/:addr").get(cors(options), async (req: Request, res: 
   let response = new ErgoPayResponse()
   let dbResp: QueryResult<any> | number
 
-  const dbQuery = `select tx_data from pay_requests where tx_id = '${txId}';`
+  const dbQuery: QueryConfig<any[]> = {
+    text: "select tx_data from pay_requests where tx_id = '$1'",
+    values: [`${txId}`]
+  }
 
   try {
     dbResp = await executeDBQuery(dbQuery);
@@ -194,7 +203,10 @@ router.route("/signed").post(cors(options), async (req: Request, res: Response):
     return
   }
 
-  const dbQuery = `update pay_requests set signed = true where tx_id = '${reply.txId}';`
+  const dbQuery: QueryConfig<any[]> = {
+    text: "update pay_requests set signed = true where tx_id = '$1'",
+    values: [`${reply.txId}`]
+  }
 
   try {
     dbResp = await executeDBQuery(dbQuery);
@@ -220,7 +232,7 @@ router.route("/signed").post(cors(options), async (req: Request, res: Response):
 
 })
 
-async function executeDBQuery(query: string): Promise<QueryResult<any> | number> {
+async function executeDBQuery(query: QueryConfig<any[]>): Promise<QueryResult<any> | number> {
 
   return new Promise(resolve => {
 
@@ -264,7 +276,10 @@ async function saveTx(body: any, query: any): Promise<string | number> {
         // check if txId already exists in DB
         let res: QueryResult<any>
         try {
-          res = await client.query(`select tx_id, signed from pay_requests where tx_id = '${txId}';`)
+          const q =
+            "select tx_id, signed from pay_requests where tx_id = '$1'"
+          const vals = [`${txId}`]
+          res = await client.query(q, vals)
           if (res.rowCount > 0) {
             console.log("found duplicate(s) for txId: " + txId);
             release()
@@ -298,9 +313,9 @@ async function saveTx(body: any, query: any): Promise<string | number> {
 }
 
 
-async function getTxDataQueryText(body: any, query: any): Promise<[string, string | number]> {
+async function getTxDataQueryText(body: any, query: any): Promise<[string, QueryConfig<any[]> | number]> {
 
-  let queryText = ""
+  let queryText: QueryConfig<any[]>
   let txId = ""
 
   if (body.uuid === undefined) {
@@ -327,7 +342,10 @@ async function getTxDataQueryText(body: any, query: any): Promise<[string, strin
     const txReducedBase64 = Buffer.from(reducedTx.sigma_serialize_bytes()).toString('base64');    //byteArrayToBase64(reducedTx.sigma_serialize_bytes())
     const ergoPayTx = txReducedBase64.replace(/\//g, '_').replace(/\+/g, '-')
 
-    queryText = `insert into pay_requests values (default,$$${body.uuid}$$,$$${ergoPayTx}$$,current_timestamp,$$${txId}$$) ;`
+    queryText = {
+      text: 'insert into pay_requests values (default,$1,$2,current_timestamp,$3)',
+      values: [`${body.uuid}`, `${ergoPayTx}`, `${txId}`],
+    }
 
   }
   return [txId, queryText]
@@ -399,9 +417,9 @@ async function saveSession(body: any, query: any): Promise<QueryResult<any> | nu
   });
 }
 
-async function getSaveSessionQueryText(body: any, query: any): Promise<string | number> {
+async function getSaveSessionQueryText(body: any, query: any): Promise<QueryConfig<any[]> | number> {
 
-  let queryText = ""
+  let queryText: QueryConfig<any[]>
 
   if (typeof query === "undefined") {
     return 400001
@@ -415,7 +433,14 @@ async function getSaveSessionQueryText(body: any, query: any): Promise<string | 
       return 400003
 
     } else {
-      queryText = `insert into active_sessions values (default,$$${query.uuid}$$,current_timestamp,$$${body.wallet}$$) on conflict on constraint unique_uuid do update set last_connect_time = current_timestamp, wallet_address = $$${body.wallet}$$;`
+      queryText = {
+        text: 'insert into active_sessions values (default,$1,current_timestamp,$2) on conflict on constraint unique_uuid do update set last_connect_time = current_timestamp, wallet_address = $3',
+        values: [
+          `${query.uuid}`,
+          `${body.wallet}`,
+          `${body.wallet}`,
+        ]
+      }
     }
     return queryText
   }
