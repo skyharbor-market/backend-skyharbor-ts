@@ -273,9 +273,11 @@ async function saveTx(body: any, query: any): Promise<string | number> {
 
       let [txId, queryText] = await getTxDataQueryText(body, query);
 
-      console.log("query text: " + queryText);
+      console.log("query", queryText)
+      console.log("txId", txId)
 
       if (typeof queryText !== "number") {
+        console.log("Inside typeof queryText")
         // check if txId already exists in DB
         let res: QueryResult<any>
         try {
@@ -293,23 +295,24 @@ async function saveTx(body: any, query: any): Promise<string | number> {
             client
               .query(queryText)
               .then(res => {
-                release();
-                resolve(txId);
+                release()
+                resolve(txId)
               })
               .catch(e => {
-                release();
+                console.log("Inside this error")
+                release()
                 console.error(e.stack)
-                resolve(500000);
+                resolve(500000)
               })
           }
         } catch (e) {
           release();
           console.error(e.stack)
-          resolve(500000);
+          resolve(500000)
         }
       } else { //rtn error code
         release()
-        resolve(queryText);
+        resolve(queryText)
       }
     })
   });
