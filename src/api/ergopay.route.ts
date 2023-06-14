@@ -268,6 +268,9 @@ async function saveTx(body: any, query: any): Promise<string | number> {
     ergoPayPool.connect(async (err: Error, client: PoolClient, release: any) => {
       if (err) throw err;
 
+      console.log("body", body)
+      console.log("query", query)
+
       let [txId, queryText] = await getTxDataQueryText(body, query);
 
       console.log("query text: " + queryText);
@@ -341,6 +344,10 @@ async function getTxDataQueryText(body: any, query: any): Promise<[string, Query
 
     const txReducedBase64 = Buffer.from(reducedTx.sigma_serialize_bytes()).toString('base64');    //byteArrayToBase64(reducedTx.sigma_serialize_bytes())
     const ergoPayTx = txReducedBase64.replace(/\//g, '_').replace(/\+/g, '-')
+
+    console.log("body.uuid", body.uuid)
+    console.log("ergoPayTx", ergoPayTx)
+    console.log("txId", txId)
 
     queryText = {
       text: 'insert into pay_requests values (default,$1,$2,current_timestamp,$3)',
