@@ -285,6 +285,7 @@ async function saveTx(body: any, query: any): Promise<string | number> {
             "select tx_id, signed from pay_requests where tx_id = '$1'"
           const vals = [`${txId}`]
           res = await client.query(q, vals)
+          console.log("res", res)
           if (res.rowCount > 0) {
             console.log("found duplicate(s) for txId: " + txId);
             release()
@@ -306,7 +307,8 @@ async function saveTx(body: any, query: any): Promise<string | number> {
               })
           }
         } catch (e) {
-          release();
+          console.log("Inside this other error")
+          release()
           console.error(e.stack)
           resolve(500000)
         }
