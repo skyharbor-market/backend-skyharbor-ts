@@ -282,7 +282,7 @@ async function saveTx(body: any, query: any): Promise<string | number> {
         let res: QueryResult<any>
         try {
           const q =
-            "select tx_id, signed from pay_requests where tx_id = '$1'"
+            'select tx_id, signed from pay_requests where tx_id = $1'
           const vals = [`${txId}`]
           res = await client.query(q, vals)
           console.log("res", res)
