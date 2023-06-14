@@ -80,7 +80,7 @@ router.route("/setAddr/:uuid/:addr").get(cors(options), async (req: Request, res
   let dbResp: QueryResult<any> | number
 
   const dbQuery: QueryConfig<any[]> = {
-    text: "insert into active_sessions values (default,$1,current_timestamp,$2) on conflict on constraint unique_uuid do update set last_connect_time = current_timestamp, wallet_address = $3",
+    text: 'insert into active_sessions values (default,$1,current_timestamp,$2) on conflict on constraint unique_uuid do update set last_connect_time = current_timestamp, wallet_address = $3',
     values: [`${uuid}`, `${addr}`, `${addr}`]
   }
 
@@ -114,7 +114,7 @@ router.route("/getWalletAddr/:uuid").get(cors(options), async (req: Request, res
   let dbResp: QueryResult<any> | number
 
   const dbQuery: QueryConfig<any[]> = {
-    text: "select wallet_address from active_sessions where uuid = '$1'",
+    text: 'select wallet_address from active_sessions where uuid = $1',
     values: [`${uuid}`]
   }
 
@@ -148,7 +148,7 @@ router.route("/getTx/:txId/:addr").get(cors(options), async (req: Request, res: 
   let dbResp: QueryResult<any> | number
 
   const dbQuery: QueryConfig<any[]> = {
-    text: "select tx_data from pay_requests where tx_id = '$1'",
+    text: 'select tx_data from pay_requests where tx_id = $1',
     values: [`${txId}`]
   }
 
@@ -204,7 +204,7 @@ router.route("/signed").post(cors(options), async (req: Request, res: Response):
   }
 
   const dbQuery: QueryConfig<any[]> = {
-    text: "update pay_requests set signed = true where tx_id = '$1'",
+    text: 'update pay_requests set signed = true where tx_id = $1',
     values: [`${reply.txId}`]
   }
 
@@ -268,16 +268,11 @@ async function saveTx(body: any, query: any): Promise<string | number> {
     ergoPayPool.connect(async (err: Error, client: PoolClient, release: any) => {
       if (err) throw err;
 
-      console.log("body", body)
-      console.log("query", query)
-
       let [txId, queryText] = await getTxDataQueryText(body, query);
 
       console.log("query", queryText)
-      console.log("txId", txId)
 
       if (typeof queryText !== "number") {
-        console.log("Inside typeof queryText")
         // check if txId already exists in DB
         let res: QueryResult<any>
         try {
@@ -285,7 +280,6 @@ async function saveTx(body: any, query: any): Promise<string | number> {
             'select tx_id, signed from pay_requests where tx_id = $1'
           const vals = [`${txId}`]
           res = await client.query(q, vals)
-          console.log("res", res)
           if (res.rowCount > 0) {
             console.log("found duplicate(s) for txId: " + txId);
             release()
@@ -300,14 +294,12 @@ async function saveTx(body: any, query: any): Promise<string | number> {
                 resolve(txId)
               })
               .catch(e => {
-                console.log("Inside this error")
                 release()
                 console.error(e.stack)
                 resolve(500000)
               })
           }
         } catch (e) {
-          console.log("Inside this other error")
           release()
           console.error(e.stack)
           resolve(500000)
