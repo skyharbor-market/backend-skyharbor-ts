@@ -20,7 +20,7 @@ const router = express.Router();
 // router.get('/schema', async (req: Request, res: Response) => {
 // })
 
-const origins = ['https://skyharbor.io', 'http://localhost:3000', 'http://127.0.0.1:3000', 'https://testapi.skyharbor.io', 'https://skyharbor-git-development-enftexchange.vercel.app']
+const origins = ['https://skyharbor.io', 'http://localhost:3000', 'http://127.0.0.1:3000', 'https://testapi.skyharbor.io', 'https://api.skyharbor.io', 'https://skyharbor-git-development-enftexchange.vercel.app']
 const options: cors.CorsOptions = {
   allowedHeaders: [
     'Origin',
