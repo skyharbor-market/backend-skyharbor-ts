@@ -30,6 +30,7 @@ import transactionRouter from "./api/transaction.route"
 import collectionsRouter from "./api/collections.route"
 import salesRouter from "./api/sales.route"
 import ergopayRouter from "./api/ergopay.route"
+import ergoauthRouter from "./api/ergoauth.route"
 import metricsRouter from "./api/metrics.route"
 import utilsRouter from "./api/utils.route"
 
@@ -90,8 +91,9 @@ app.use('/api/transaction', cors(), transactionRouter);
 app.use('/api/collections', cors(), collectionsRouter);
 app.use('/api/sales', cors(), salesRouter);
 app.use('/api/ergopay', ergopayRouter);
+app.use('/api/ergoauth', ergoauthRouter);
 app.use('/api/metrics', cors(), metricsRouter);
-app.use('/api/utils', cors(),utilsRouter);
+app.use('/api/utils', cors(), utilsRouter);
 
 // catch 404 and forward to error handler
 app.use(function (req: Request, res: Response, next: NextFunction) {
