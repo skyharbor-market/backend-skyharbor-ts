@@ -1,9 +1,9 @@
 import axios from "axios";
-import { showMsg, isWalletSaved, signTx, getWalletAddress } from "../helpers";
+import { showMsg, isWalletSaved } from "../helpers";
 import {
   txFee,
   supportedCurrencies,
-  listingFee,
+  listingFee, // MAYBE REMOVE LISTING FEE FOR BACKEND
   CHANGE_BOX_ASSET_LIMIT,
 } from "../consts";
 import { min_value } from "../conf";
@@ -30,14 +30,18 @@ interface BulkListInterface {
   currency: string; //Currency of the listing price
 }
 
-export async function bulkList({ nfts }: BulkListInterface) {
-  // Eject if wallet isnt connected
-  if (!isWalletSaved()) {
-    showMsg("Connect your wallet first.", true);
-    return;
-  }
+/* TODO
+
+- Allow option for people calling API to add a listing fee to their own address
+    - API has optional listingFee var, listingFee: {address: "aksjdn", fee: 3000000000}
+
+- Replace all showMsg with error call
+- 
+*/
+
+export async function bulkList({ nfts, userAddresses }: BulkListInterface) {
   const wasm = await ergolib;
-  const seller = await getWalletAddress();
+  const seller = userAddresses[0];
   const blockHeight = await currentBlock();
 
   let nft: NftAsset;

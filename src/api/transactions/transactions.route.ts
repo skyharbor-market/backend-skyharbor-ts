@@ -16,6 +16,9 @@ router.get(["/bulkList", "/list"], async (req: Request, res: Response) => {
   // price: Cost of all NFTs being listed
   // currency: Currency of the listing price
 
+  // if req.nfts is not an array, but only a single nft asset, then add the single nft asset into an array: [nft],
+  //   then pass it into bulkList
+
   const colls = await bulkList({
     nfts: [],
     userAddresses: [],
