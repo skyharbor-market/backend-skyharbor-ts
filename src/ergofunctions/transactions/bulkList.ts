@@ -1,5 +1,5 @@
 import axios from "axios";
-import { showMsg, isWalletSaved } from "../helpers";
+import { showMsg } from "../helpers";
 import {
   txFee,
   supportedCurrencies,
@@ -11,11 +11,12 @@ import { currentBlock, boxById } from "../explorer";
 import { encodeHex, encodeNum, getEncodedBoxSer } from "../serializer";
 import { Address } from "@coinbarn/ergo-ts";
 let ergolib = import("ergo-lib-wasm-nodejs");
-import { getConnectorAddress, getTokens } from "../walletUtils";
 import { get_utxos } from "../ergolibUtils";
-import { signWalletTx } from "../utxos";
+// import { signWalletTx } from "../utxos";
 import NftAsset from "../../interfaces/NftAsset";
 
+// import { ErgoBox } from "ergo-lib-wasm-nodejs";
+import { ErgoBox } from "@coinbarn/ergo-ts";
 const backupNodeUrl = "https://paidincrypto.io";
 // const nodeUrl = "https://www.test-skyharbor-server.net:9053/";
 const nodeUrl = "https://node.ergo.watch";
@@ -86,7 +87,7 @@ export async function bulkList({ nfts, userAddresses }: BulkListInterface) {
     }
 
     if (curIns !== undefined) {
-      curIns.forEach((bx) => {
+      curIns.forEach((bx: ErgoBox) => {
         have["ERG"] -= parseInt(bx.value);
         bx.assets.forEach((ass) => {
           if (!Object.keys(have).includes(ass.tokenId)) have[ass.tokenId] = 0;
@@ -130,8 +131,8 @@ export async function bulkList({ nfts, userAddresses }: BulkListInterface) {
 
   let publicKey = publicKeyResponse.data.raw;
 
-  let nftOut;
-  let listedBoxes = [];
+  let nftOut: NftAsset;
+  let listedBoxes: ErgoBox[] = [];
 
   for (nftOut of nfts) {
     let artBox = await boxById(nftOut.id);
@@ -151,7 +152,7 @@ export async function bulkList({ nfts, userAddresses }: BulkListInterface) {
     }
 
     let registers = {
-      R4: await encodeNum(nftOut.price.toString()),
+      R4: await encodeNum(nftOut?.price?.toString()),
       R5: await encodeHex(new Address(seller).ergoTree),
       R6: encodedSer,
       R7: "07" + publicKey,
@@ -227,8 +228,8 @@ export async function bulkList({ nfts, userAddresses }: BulkListInterface) {
     };
     console.log("transaction_to_sign", transaction_to_sign);
 
-    // return transaction_to_sign
+    return transaction_to_sign;
     // return await signTx(transaction_to_sign)
-    return await signWalletTx(transaction_to_sign);
+    // return await signWalletTx(transaction_to_sign);
   }
 }

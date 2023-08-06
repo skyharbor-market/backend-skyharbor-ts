@@ -7,6 +7,7 @@ import { Address, AddressKind } from "@coinbarn/ergo-ts/dist/models/address"
 import { boxById, getIssuingBox, txById } from "./explorer"
 import { supportedCurrencies } from "./consts"
 import { getForKey } from "./helpers"
+import { ErgoBox } from "@coinbarn/ergo-ts";
 // const {getEncodedBox}  = require( "./assembler");
 // import {addNFTInfo, getNFTInfo} from "./dbUtils";
 
@@ -287,4 +288,11 @@ export function isNatural(num: any) {
 
 export function isP2pkAddr(tree: any) {
   return Address.fromErgoTree(tree).getType() === AddressKind.P2PK
+}
+
+
+export async function getEncodedBoxSer(box: ErgoBox) {
+  const bytes = (await ergolib).ErgoBox.from_json(JSON.stringify(box)).sigma_serialize_bytes();
+  let hexString = toHexString(bytes)
+  return "63" + hexString
 }
