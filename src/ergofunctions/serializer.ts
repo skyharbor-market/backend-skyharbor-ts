@@ -39,6 +39,18 @@ export async function encodeNum(n: any, isInt = false) {
   else return (await ergolib).Constant.from_i64((await ergolib).I64.from_str(n)).encode_to_base16()
 }
 
+export async function encodeContract(address: any) {
+  const tmp = (await ergolib).Contract.pay_to_address((await ergolib).Address.from_base58(address))
+  return tmp.ergo_tree().to_base16_bytes();
+}
+
+export async function ergoTreeToAddress(ergoTree: any) {
+  //console.log("ergoTreeToAddress",ergoTree);
+  const ergoT = (await ergolib).ErgoTree.from_base16_bytes(ergoTree);
+  const address = (await ergolib).Address.recreate_from_ergo_tree(ergoT);
+  return address.to_base58((await ergolib).NetworkPrefix.Mainnet)
+}
+
 export async function decodeNum(n: any, isInt = false) {
   if (isInt) return (await ergolib).Constant.decode_from_base16(n).to_i32()
   else return (await ergolib).Constant.decode_from_base16(n).to_i64().to_str()

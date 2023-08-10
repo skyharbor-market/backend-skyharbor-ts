@@ -37,6 +37,14 @@ export function unspentBoxesFor(address: any) {
   return getRequest(`/transactions/boxes/byAddress/unspent/${address}`)
 }
 
+export async function unspentBoxesForV1(address: any) {
+  return getRequest(`/boxes/unspent/byAddress/${address}`, explorerApiV1).then(
+    (res) => {
+      return res.items
+    }
+  )
+}
+
 export function getBoxesForAsset(asset: any) {
   return getRequest(`/boxes/unspent/byTokenId/${asset}`, explorerApiV1)
 }
@@ -52,6 +60,10 @@ export function getUnconfirmedTxsFor(addr: any) {
     `/mempool/transactions/byAddress/${addr}`, explorerApiV1
   )
     .then((res) => res.items);
+}
+
+export async function getTokenBoxV1(tokenId: any) {
+  return getRequest(`/tokens/${tokenId}`, explorerApiV1)
 }
 
 export async function getAllActiveAuctions() {

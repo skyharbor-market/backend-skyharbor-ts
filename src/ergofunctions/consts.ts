@@ -65,3 +65,6 @@ const fakeThreshold = 0.05;
 const fakeURL = "https://ergolui.com/nft-check/nfthashcompares/";
 
 const notifCoolOff = 40;
+
+// export const skyHarborApi =  "https://skyharbor-server.net"
+export const skyHarborApi = "https://api.skyharbor.io"

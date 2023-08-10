@@ -34,6 +34,7 @@ import ergopayRouter from "./api/ergopay.route"
 import metricsRouter from "./api/metrics.route"
 import utilsRouter from "./api/utils.route"
 import transactionsRouter from "./api/transactions/transactions.route"
+import testRouter from "./api/test.route"
 
 const app: Application = express();
 
@@ -93,8 +94,9 @@ app.use('/api/collections', cors(), collectionsRouter);
 app.use('/api/sales', cors(), salesRouter);
 app.use('/api/ergopay', ergopayRouter);
 app.use('/api/metrics', cors(), metricsRouter);
-app.use('/api/utils', cors(),utilsRouter);
+app.use('/api/utils', cors(), utilsRouter);
 app.use('/api/transactions', cors(), transactionsRouter);
+app.use('/api/test', cors(), testRouter);
 
 // catch 404 and forward to error handler
 app.use(function (req: Request, res: Response, next: NextFunction) {
