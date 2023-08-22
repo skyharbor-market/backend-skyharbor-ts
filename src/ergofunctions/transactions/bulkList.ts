@@ -29,7 +29,6 @@ interface BulkListInterface {
   nfts: NftAsset[];
   userAddresses: string[]; //All user addresses so we can look through all and check if they have balance
   price: number; // Cost of all NFTs being listed
-  currency: string; //Currency of the listing price
 }
 
 /* TODO
@@ -41,7 +40,7 @@ interface BulkListInterface {
 - 
 */
 
-export async function bulkList({ nfts, userAddresses, price, currency }: BulkListInterface) {
+export async function bulkList({ nfts, userAddresses, price }: BulkListInterface) {
   const wasm = await ergolib;
   const seller = userAddresses[0];
   const validdd = await addressIsValid(seller);

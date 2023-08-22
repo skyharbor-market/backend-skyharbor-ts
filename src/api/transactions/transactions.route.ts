@@ -12,7 +12,6 @@ interface RequestBody {
   nfts: NftAsset[];
   userAddresses: string[];
   price: number;
-  currency: string;
 }
 
 // Bulk List and Single List are same method currently
@@ -34,7 +33,7 @@ router.post(["/bulkList", "/list"], async (req: Request, res: Response) => {
     res.status(400);
     res.send({
       message:
-        "One of your body.nfts objects are built wrong. Must include id, price, and currency.",
+        "One of your body.nfts objects are built wrong. Must include id, price, and a supported currency.",
     });
     return 400003;
   } else if (
@@ -53,20 +52,7 @@ router.post(["/bulkList", "/list"], async (req: Request, res: Response) => {
     });
 
     return 400005;
-  } else if (body.currency === undefined) {
-    res.status(400);
-    res.send({
-      message: "body.currency is not found.",
-    });
-
-    return 400006;
-  } else if (!allowedCurrencies.includes(body.currency)) {
-    // currency not found in allowed currencies
-    res.status(400);
-    res.send({ message: "body.currency not found in allowed currencies." });
-    return 400007;
   }
-
   // if req.nfts is not an array, but only a single nft asset, then add the single nft asset into an array: [nft],
   //   then pass it into bulkList
   let allNfts = [];
@@ -85,24 +71,23 @@ router.post(["/bulkList", "/list"], async (req: Request, res: Response) => {
       nfts: allNfts,
       userAddresses: body.userAddresses,
       price: body.price,
-      currency: body.currency,
     });
   } catch (err) {
     res.status(400);
-    res.send({ 
+    res.send({
       error: true,
-      message: err
-     });
-     return
+      message: err,
+    });
+    return;
   }
 
   // return transaction_to_sign;
   res.status(200);
-  res.send({ 
+  res.send({
     error: false,
-    transaction_to_sign: transaction_to_sign
+    transaction_to_sign: transaction_to_sign,
   });
-  return
+  return;
 });
 
 export default router;
@@ -117,7 +102,12 @@ function checkIfAssetsAreCorrect(nft: NftAsset | NftAsset[]) {
   }
 
   for (let n of allNfts) {
-    if (!n.id || !n.price || !n.currency) {
+    if (
+      !n.id ||
+      !n.price ||
+      !n.currency ||
+      !allowedCurrencies.includes(n?.currency)
+    ) {
       return false;
     }
   }
