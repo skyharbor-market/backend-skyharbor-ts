@@ -28,7 +28,6 @@ const serviceAddress = "9h9ssEYyHaosFg6BjZRRr2zxzdPPvdb7Gt7FA8x7N9492nUjpsd";
 interface BulkListInterface {
   nfts: NftAsset[];
   userAddresses: string[]; //All user addresses so we can look through all and check if they have balance
-  price: number; // Cost of all NFTs being listed
 }
 
 /* TODO
@@ -40,12 +39,11 @@ interface BulkListInterface {
 - 
 */
 
-export async function bulkList({ nfts, userAddresses, price }: BulkListInterface) {
+export async function bulkList({ nfts, userAddresses }: BulkListInterface) {
   const wasm = await ergolib;
   const seller = userAddresses[0];
-  const validdd = await addressIsValid(seller);
-  console.log("validddd", validdd)
-  if (!validdd) {
+  const isValidAdd = await addressIsValid(seller);
+  if (!isValidAdd) {
     console.log("invalid address");
     throw "Address is not valid";
   }
@@ -83,6 +81,13 @@ export async function bulkList({ nfts, userAddresses, price }: BulkListInterface
     // const curIns = await ergo.get_utxos(have[keys[i]].toString(), keys[i]);
     // console.log("bx", await ergo.get_utxos())
     // console.log("have[keys[i]].toString(): ", have[keys[i]].toString(), keys[i])
+
+
+    // iterate through all addresses - make sure no boxes are duplicated if boxes are found
+    // for(let add of userAddresses) {
+
+    // }
+
 
     // Without dapp connector
     let curIns;

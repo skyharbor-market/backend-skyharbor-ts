@@ -8,6 +8,7 @@ import { boxById, getIssuingBox, txById } from "./explorer"
 import { supportedCurrencies } from "./consts"
 import { getForKey } from "./helpers"
 import { ErgoBox } from "@coinbarn/ergo-ts";
+import axios from "axios";
 // const {getEncodedBox}  = require( "./assembler");
 // import {addNFTInfo, getNFTInfo} from "./dbUtils";
 
@@ -307,4 +308,44 @@ export async function getEncodedBoxSer(box: ErgoBox) {
   const bytes = (await ergolib).ErgoBox.from_json(JSON.stringify(box)).sigma_serialize_bytes();
   let hexString = toHexString(bytes)
   return "63" + hexString
+}
+
+
+export interface RoyaltyInterface {
+    artist: string | null;
+    royalty: number | null;
+  }
+
+export async function getRoyaltyInfo(tokenId: string) {
+  let tempItem: RoyaltyInterface = {
+    artist: null,
+    royalty: null,
+  };
+  const tokBox = await axios
+    .get(`https://api.ergoplatform.com/api/v1/boxes/${tokenId}`)
+    .catch((error) => {
+      //boxById(tokenId).catch(error => {
+      console.log("Error while getting box ID.");
+      return null;
+    });
+
+  tempItem.royalty = 0;
+  try {
+    if (tokBox?.data.additionalRegisters.R4) {
+      tempItem.royalty = parseInt(
+        tokBox.data.additionalRegisters.R4["renderedValue"]
+      ); //await decodeNum(tokBox.data.additionalRegisters.R4, true);
+      if (tempItem.royalty > 900) {
+        console.log("Royalty is over 90%, reducing down to 0%");
+        tempItem.royalty = 0;
+      }
+      tempItem.artist = tokBox.data.address; //await getArtist(tokBox.data);
+    }
+  } catch {
+    console.log(
+      "Error While Decoding Artist Royalty Percentage - Royalty Set to 0"
+    );
+    return null;
+  }
+  return tempItem;
 }
