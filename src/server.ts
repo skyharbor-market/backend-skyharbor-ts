@@ -52,9 +52,11 @@ function shouldCompress(req: Request, res: Response) {
 
 // app.use(cors());
 
+// const serverHOST = "localhost";
+const serverHOST = "104.248.54.140";
+
 const sApiPool = new Pool({
-  // host: "localhost",
-  host: "104.248.54.140",
+  host: serverHOST,
   port: 5432,
   database: "skyharbor",
   user: siteUser,
@@ -66,8 +68,7 @@ const sApiPool = new Pool({
 });
 
 const ePayPool = new Pool({
-  // host: "localhost",
-  host: "104.248.54.140",
+  host: serverHOST,
   port: 5432,
   database: "ergopay",
   user: epayUser,
