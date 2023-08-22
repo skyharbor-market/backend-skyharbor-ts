@@ -1,5 +1,4 @@
 import axios from "axios";
-import { skyHarborApi } from "./consts";
 import { boxById as boxByBoxId, currentBlock as currentHeight, getTokenBoxV1, unspentBoxesForV1 } from "./explorer";
 import { encodeContract, ergoTreeToAddress } from "./serializer";
 // let ergolib = import('ergo-lib-wasm-browser')
@@ -299,10 +298,12 @@ export function getMissingErg(inputs: any[], outputs: any[]) {
 export function getMissingTokens(inputs: any, outputs: any) {
   const tokensIn = getTokenListFromUtxos(inputs);
   const tokensOut = getTokenListFromUtxos(outputs);
-  let res: any = {}
+  let res: any = {};
   console.log("getMissingTokens", tokensIn, tokensOut);
+  //@ts-ignore
   if (tokensIn !== {}) {
     for (const token in tokensIn) {
+      //@ts-ignore
       if (tokensOut !== {} && token in tokensOut) {
         if (tokensIn[token] - tokensOut[token] > 0) {
           res[token] = tokensIn[token] - tokensOut[token];
@@ -318,11 +319,12 @@ export function getMissingTokens(inputs: any, outputs: any) {
 
 export function buildTokenList(tokens: { [x: string]: { toString: () => any; }; }) {
   var res = [];
+  //@ts-ignore
   if (tokens !== {}) {
     for (const i in tokens) {
-      res.push({ "tokenId": i, "amount": tokens[i].toString() });
+      res.push({ tokenId: i, amount: tokens[i].toString() });
     }
-  };
+  }
   return res;
 }
 

@@ -1,5 +1,4 @@
 import axios from "axios";
-import { showMsg } from "../helpers";
 import {
   txFee,
   supportedCurrencies,
@@ -17,6 +16,8 @@ import NftAsset from "../../interfaces/NftAsset";
 // import { ErgoBox } from "ergo-lib-wasm-nodejs";
 import { ErgoBox } from "@coinbarn/ergo-ts";
 import { get_utxos } from "../utxos";
+import { addressIsValid } from "../../functions/validationChecks";
+import { Error } from "../../classes/error";
 const backupNodeUrl = "https://paidincrypto.io";
 // const nodeUrl = "https://www.test-skyharbor-server.net:9053/";
 const nodeUrl = "https://node.ergo.watch";
@@ -43,6 +44,12 @@ interface BulkListInterface {
 export async function bulkList({ nfts, userAddresses, price, currency }: BulkListInterface) {
   const wasm = await ergolib;
   const seller = userAddresses[0];
+  const validdd = await !addressIsValid(seller);
+  console.log("validddd", validdd)
+  if (!validdd) {
+    console.log("invalid address");
+    throw "Address is not valid";
+  }
   const blockHeight = await currentBlock();
 
   let nft: NftAsset;
@@ -87,7 +94,9 @@ export async function bulkList({ nfts, userAddresses, price, currency }: BulkLis
     }
 
     if (curIns !== undefined) {
+      //@ts-ignore
       curIns.forEach((bx: ErgoBox) => {
+        //@ts-ignore
         have["ERG"] -= parseInt(bx.value);
         bx.assets.forEach((ass) => {
           if (!Object.keys(have).includes(ass.tokenId)) have[ass.tokenId] = 0;
@@ -98,8 +107,7 @@ export async function bulkList({ nfts, userAddresses, price, currency }: BulkLis
     }
   }
   if (keys.filter((key) => have[key] > 0).length > 0) {
-    showMsg("Not enough balance in the wallet! See FAQ for more info.", true);
-    return;
+    return "Not enough balance in the wallet! See FAQ for more info.";
   }
   let publicKeyResponse = await axios
     .get(`${nodeUrl}/utils/addressToRaw/` + seller)
@@ -108,7 +116,8 @@ export async function bulkList({ nfts, userAddresses, price, currency }: BulkLis
         "Error when calling utils/addressToRaw/useraddress, using backup"
       );
     });
-
+    
+  //@ts-ignore
   if (!publicKeyResponse.data) {
     try {
       publicKeyResponse = await axios.get(
@@ -121,14 +130,12 @@ export async function bulkList({ nfts, userAddresses, price, currency }: BulkLis
     }
   }
 
+  //@ts-ignore
   if (!publicKeyResponse.data) {
-    showMsg(
-      "There was an error calling Node API, please try again later or notify support.",
-      true
-    );
-    return;
+    return "There was an error calling Node API, please try again later or notify support";
   }
 
+  //@ts-ignore
   let publicKey = publicKeyResponse.data.raw;
 
   let nftOut: NftAsset;
@@ -136,15 +143,11 @@ export async function bulkList({ nfts, userAddresses, price, currency }: BulkLis
 
   for (nftOut of nfts) {
     let artBox = await boxById(nftOut.id);
-    let p2s = supportedCurrencies[nftOut.currencyIndex].contractAddress;
+    let p2s = supportedCurrencies[nftOut.currency].contractAddress;
 
     const encodedSer = await getEncodedBoxSer(artBox).catch((err) => {
       console.log("Error: ", err);
-      showMsg(
-        "Listing is currently unavailable, please try again later.",
-        true
-      );
-      return;
+      return "Listing is currently unavailable, please try again later";
     });
 
     if (!encodedSer) {
@@ -158,6 +161,7 @@ export async function bulkList({ nfts, userAddresses, price, currency }: BulkLis
       R7: "07" + publicKey,
     };
     listedBoxes.push({
+      //@ts-ignore
       value: (min_value + txFee).toString(),
       ergoTree: wasm.Address.from_mainnet_str(p2s)
         .to_ergo_tree()
@@ -198,11 +202,7 @@ export async function bulkList({ nfts, userAddresses, price, currency }: BulkLis
   };
 
   if (changeBox.assets.length > CHANGE_BOX_ASSET_LIMIT) {
-    showMsg(
-      "Too many NFTs in input boxes to form single change box. Please de-consolidate some UTXOs. Contact the team on discord for more information.",
-      true
-    );
-    return;
+    return "Too many NFTs in input boxes to form single change box. Please de-consolidate some UTXOs. Contact the team on discord for more information.";
   } else {
     const feeBox = {
       value: txFee.toString(),
@@ -213,9 +213,11 @@ export async function bulkList({ nfts, userAddresses, price, currency }: BulkLis
       additionalRegisters: {},
     };
 
+    //@ts-ignore
     let outputs = listedBoxes.concat([payServiceFee, changeBox, feeBox]);
 
     const transaction_to_sign = {
+      //@ts-ignore
       inputs: ins.map((curIn) => {
         return {
           ...curIn,

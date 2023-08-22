@@ -15,30 +15,50 @@ interface RequestBody {
   currency: string;
 }
 
-
 // Bulk List and Single List are same method currently
-router.get(["/bulkList", "/list"], async (req: Request, res: Response) => {
+router.post(["/bulkList", "/list"], async (req: Request, res: Response) => {
   // res.set('Access-Control-Allow-Origin', 'https://skyharbor.io');
 
   const body: RequestBody = req.body;
+  console.log("BODY:", body);
+
   if (body === undefined) {
+    res.status(400);
+    res.send({
+      message: "API requires a body.",
+    });
     return 400001;
   } else if (body.nfts === undefined) {
     return 400002;
-  } else if (checkIfAssetsAreCorrect(body.nfts)) {
+  } else if (!checkIfAssetsAreCorrect(body.nfts)) {
     res.status(400);
-    res.send({ message: "One of your body.nfts objects are built wrong. Must include id, price, and currency." });
-
+    res.send({
+      message:
+        "One of your body.nfts objects are built wrong. Must include id, price, and currency.",
+    });
     return 400003;
-
   } else if (
     body.userAddresses === undefined ||
     body.userAddresses.length === 0
   ) {
+    res.status(400);
+    res.send({
+      message: "body.userAddresses is not found.",
+    });
     return 400004;
   } else if (body.price === undefined) {
+    res.status(400);
+    res.send({
+      message: "body.price is not found.",
+    });
+
     return 400005;
   } else if (body.currency === undefined) {
+    res.status(400);
+    res.send({
+      message: "body.currency is not found.",
+    });
+
     return 400006;
   } else if (!allowedCurrencies.includes(body.currency)) {
     // currency not found in allowed currencies
@@ -50,39 +70,55 @@ router.get(["/bulkList", "/list"], async (req: Request, res: Response) => {
   // if req.nfts is not an array, but only a single nft asset, then add the single nft asset into an array: [nft],
   //   then pass it into bulkList
   let allNfts = [];
-  if (typeof body.nfts === "object") {
+  if (Array.isArray(body.nfts)) {
     allNfts = body.nfts;
   } else {
     allNfts = [body.nfts];
   }
 
-  const transaction_to_sign = await bulkList({
-    nfts: allNfts,
-    userAddresses: body.userAddresses,
-    price: body.price,
-    currency: body.currency,
-  });
+  console.log("typeof body.nfts", typeof body.nfts);
+  console.log("allNfts", allNfts);
 
-  return transaction_to_sign;
+  let transaction_to_sign;
+  try {
+    transaction_to_sign = await bulkList({
+      nfts: allNfts,
+      userAddresses: body.userAddresses,
+      price: body.price,
+      currency: body.currency,
+    });
+  } catch (err) {
+    res.status(400);
+    res.send({ 
+      error: true,
+      message: err
+     });
+  }
+
+  // return transaction_to_sign;
+  res.status(200);
+  res.send({ 
+    error: false,
+    transaction_to_sign: transaction_to_sign
+  });
 });
 
 export default router;
 
-
 function checkIfAssetsAreCorrect(nft: NftAsset | NftAsset[]) {
-  let allNfts: NftAsset[]
-  if(!Array.isArray(nft)) {
-    allNfts = [nft]
-  }
-  else {
+  let allNfts: NftAsset[];
+
+  if (!Array.isArray(nft)) {
+    allNfts = [nft];
+  } else {
     allNfts = nft;
   }
 
-  for(let n of allNfts) {
-    if(!n.id || !n.price || !n.currency) {
-      return false
+  for (let n of allNfts) {
+    if (!n.id || !n.price || !n.currency) {
+      return false;
     }
   }
 
-  return true
+  return true;
 }
