@@ -8,9 +8,14 @@ import { Address, ErgoBox } from "@coinbarn/ergo-ts";
 import { allowedCurrencies } from "./consts";
 import NftAsset from "../interfaces/NftAsset";
 import { boxById, explorerApiV1 } from "./explorer";
+import { BuyBoxInterface, EmptyBuyBoxInterface } from "../interfaces/BuyBox";
 
 dotenv.config();
-const nodeUrl = "https://paidincrypto.io"
+
+// const nodeUrl = "https://paidincrypto.io"
+const nodeUrl = "https://node.ergo.watch"
+// const nodeUrl = "https://www.test-skyharbor-server.net:9053"
+
 
 // SWAGGER API KEY
 let headers = {
@@ -53,10 +58,10 @@ export async function generate_p2s(script: any) {
 }
 
 
-export async function getListedBox(buyBox: any) {
+export async function getListedBox(buyBox: BuyBoxInterface) {
   // Get listed Box from explorer
   let listedBox;
-  if (!buyBox.box_json) {
+  if (!buyBox?.box_json) {
     let tempBox = await axios.get(`${explorerApiV1}/boxes/${buyBox.box_id}`);
     listedBox = tempBox.data;
   } else {
@@ -64,6 +69,11 @@ export async function getListedBox(buyBox: any) {
   }
   listedBox.extension = {};
   // Add R6 to listedBox since explorer does not return it
+
+  if (!listedBox?.assets[0]?.tokenId) {
+    throw "Could not find listed asset"
+  }
+
   let buyArtBox = await boxById(listedBox.assets[0].tokenId);
 
   try {

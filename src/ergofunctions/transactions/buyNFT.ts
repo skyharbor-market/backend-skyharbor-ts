@@ -5,6 +5,7 @@ import { encodeHex, getRoyaltyInfo, RoyaltyInterface } from "../serializer";
 import { get_utxos } from "../utxos";
 import { addressIsValid } from "../../functions/validationChecks";
 import NftAsset from "../../interfaces/NftAsset";
+import { BuyBoxInterface } from "../../interfaces/BuyBox";
 
 let ergolib = import("ergo-lib-wasm-nodejs");
 
@@ -21,22 +22,17 @@ const minterServiceAddress =
 // ----------------------------------------------------- Buying an NFT -----------------------------------------------------
 // -------------------------------------------------------------------------------------------------------------------------
 
-
 interface BuyInterface {
-  buyBox: NftAsset;
+  buyBox: BuyBoxInterface;
   userAddresses: string[]; //All user addresses so we can look through all and check if they have balance
 }
 
 export async function buyNFT({ buyBox, userAddresses }: BuyInterface) {
-    
-
-  // return await buyNFTFleet(buyBox)
   const wasm = await ergolib;
 
   // const buyer = await getConnectorAddress()
   const buyer = userAddresses[0];
   console.log("buyer", buyer);
-
 
   const isValidAdd = await addressIsValid(buyer);
   if (!isValidAdd) {
@@ -45,7 +41,14 @@ export async function buyNFT({ buyBox, userAddresses }: BuyInterface) {
   }
 
   const blockHeight = await currentBlock();
-  let listedBox = await getListedBox(buyBox);
+  let listedBox;
+  try {
+    listedBox = await getListedBox(buyBox);
+
+  } catch (err) {
+    console.log("ERRRE", err);
+    throw "Error getting NFT listing."
+  }
 
   // Calculate Box Values
   let sellerValue = 0;
@@ -55,12 +58,15 @@ export async function buyNFT({ buyBox, userAddresses }: BuyInterface) {
   if (payServiceFee === 0) {
     payServiceFee = 1;
   }
-  let royalties: RoyaltyInterface | null = await getRoyaltyInfo(listedBox.assets[0].tokenId);
+  let royalties: RoyaltyInterface | null = await getRoyaltyInfo(
+    listedBox.assets[0].tokenId
+  );
   let royalty_value;
   let royalty_propBytes;
   if (royalties?.artist) {
     royalty_value = Math.floor(
-      (listedBox.additionalRegisters.R4.renderedValue * (royalties?.royalty || 0)) /
+      (listedBox.additionalRegisters.R4.renderedValue *
+        (royalties?.royalty || 0)) /
         1000
     );
     if (royalty_value === 0) {
@@ -122,6 +128,9 @@ export async function buyNFT({ buyBox, userAddresses }: BuyInterface) {
     additionalRegisters: {},
   };
 
+  console.log("test 2");
+
+
   const feeBox = {
     value: txFee.toString(),
     creationHeight: blockHeight.height,
@@ -173,6 +182,9 @@ export async function buyNFT({ buyBox, userAddresses }: BuyInterface) {
     throw "Not enough balance in the wallet! See FAQ for more info";
   }
 
+  console.log("test 3");
+
+
   const changeBox = {
     value: (-have["ERG"] + listedBox.value + txFee).toString(),
     ergoTree: wasm.Address.from_mainnet_str(buyer)
@@ -199,8 +211,11 @@ export async function buyNFT({ buyBox, userAddresses }: BuyInterface) {
     if (payRoyalty) {
       finalOutputs.push(payRoyalty);
     }
+    // @ts-ignore
     finalOutputs.push(buyerGets);
+    // @ts-ignore
     finalOutputs.push(changeBox);
+    // @ts-ignore
     finalOutputs.push(feeBox);
 
     const inputList = ins.map((curIn) => {
