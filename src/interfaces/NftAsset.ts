@@ -1,5 +1,5 @@
 export default interface NftAsset {
-  id: string;
-  token_id: string;
+  id: string; // token_id
   price?: number;
+  currency: string;
 }

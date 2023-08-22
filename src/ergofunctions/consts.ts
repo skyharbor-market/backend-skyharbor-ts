@@ -21,35 +21,48 @@ export const txFee = 1000000;
 export const listingFee = 30000000;
 export const CHANGE_BOX_ASSET_LIMIT = 90;
 
+export const v1ErgAddress =
+  "26tpZU6i6zeBRuzZVo7tr47zjArAxkHP8x7ijiRbbrvLhySvSU84bH8wNPGGG27EwhJfJLe7bvRPv6B1jQFQqrWUQqBX1XJpVGoiNgveance6JFZ4mKv1KkRE8nBSB3jKBGnVJjJF6wR1Z8YXRsUqrTff4bfmtbhaRRjibnDDtKhS71spfjjTBeU1AhhQpitCDg4NFxmTLyV1arE7G2riZKzDryjWnCiEJGzWNxYtVt8uDxd3qNSRE5sHECwcsb98x7rn4q4FyHMvvWrRMPFfVgAQd5wHCAHwhMEdqUrSFQVkmUMavju8CLAgCNcVFjUBKPX4ooEHLUw3QkxS9Jp6fAFAGmzJ6QVD71mAZYMYhoEQnFyUBx1txJjVJjCrcZsW43dimbt5su4ahATJ8qRtWgwat8vTViTVXAcBmUSnqbqhAqTCxcsS5EFS6ApJSfthPHYUyXwtcbTptfdnUx1e5hEiGcwxoQ8ivufNNiZE9xkxi4nsBBrBVBJ7pfSSoHvbodkzLrq91RHYrvuatyLuBSxgJxs198xUQhULqxmWwgthJLrG5VVfVYH";
+export const v1SigUsdAddress =
+  "qNtfov7o2g1GYShDaD4a1QNv1bSjEXAbnWzVJQA7qVYogTFuxuw659G1WWwonQqA91AsYa9vL7JQLysRvMyNdZ6iLHH5mgx5RKn6tEE5uki3MPNg5cVrnG9rhZuKA3CpyaMbBBus7fxoYQsHgLCShaqJEyjFZsKooWqVJ1nFQeo9hiTCLcWd91B4EeWzrimYswG4cPaJyBwQp9eit1Hq1UtZ8dwo3r7vKsH7aJLzZbq6mky4itWHKueA4bybDQfPwYXoujsChY5jawj6V1YQrrVbzdxm66pBSfCdzr76nWp5VdnPJXbvnN6tHpv2Taivs23JJBPakAeDSpX1TuYx7Ce5KYHutTczNcytPQgbetWXNxTKzDsmzLbEX1bsWdryJnJT5bUHUXEEacWmz6JgUaKRbrJwWNgrpH5V3t6nvUgpZFpwQnNLYnLQs4tVHch3DeifD3f7BX4s5E3qArtDkNMPsY6AgUPd6kLNbfRvyZPf2RDA2CXn9ABmnKmTZdJYfc2bLHG1H7igeBH4g5Tok5fkjux6L8T8Pf7jBiV6WYRjD4y8E6idTTWrBJ9vvPJURnFD6L8jp2f3xt6HvKD1bokKUZyeTiu9hmFm3s9TE8x7ztCXeYUiJq7Lm4FzFsXkyqKgGDRSXXGmqDpwaWSdtH9Pn43kLWr8hRoMkAm1f9e6nhJQfCRu8wAK3Zv74vRfq";
+
+
+export const allowedCurrencies = [
+  "erg",
+  "sigusd"
+]
+
 export const supportedCurrencies = {
-  ERG: {
+  erg: {
     name: "ERG",
     id: "",
     decimal: 9,
     minSupported: 10000000,
     initial: 10000000,
+    contractAddress: v1ErgAddress,
   },
-  SigUSD: {
+  sigusd: {
     name: "SigUSD",
     id: "03faf2cb329f2e90d6d23b58d91bbb6c046aa143261cc21f52fbe2824bfcbf04",
     decimal: 2,
     minSupported: 100,
     initial: 1,
+    contractAddress: v1SigUsdAddress,
   },
-  SigRSV: {
-    name: "SigRSV",
-    id: "003bd19d0187117f130b62e1bcab0939929ff5c7709f843c5c4dd158949285d0",
-    decimal: 0,
-    minSupported: 100,
-    initial: 1,
-  },
-  kushti: {
-    name: "kushti",
-    id: "fbbaac7337d051c10fc3da0ccb864f4d32d40027551e1c3ea3ce361f39b91e40",
-    decimal: 0,
-    minSupported: 100,
-    initial: 1,
-  },
+  // SigRSV: {
+  //   name: "SigRSV",
+  //   id: "003bd19d0187117f130b62e1bcab0939929ff5c7709f843c5c4dd158949285d0",
+  //   decimal: 0,
+  //   minSupported: 100,
+  //   initial: 1,
+  // },
+  // kushti: {
+  //   name: "kushti",
+  //   id: "fbbaac7337d051c10fc3da0ccb864f4d32d40027551e1c3ea3ce361f39b91e40",
+  //   decimal: 0,
+  //   minSupported: 100,
+  //   initial: 1,
+  // },
 };
 const assmUrl = "https://assembler.ergoauctions.org/";
 

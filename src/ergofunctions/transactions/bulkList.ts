@@ -11,12 +11,12 @@ import { currentBlock, boxById } from "../explorer";
 import { encodeHex, encodeNum, getEncodedBoxSer } from "../serializer";
 import { Address } from "@coinbarn/ergo-ts";
 let ergolib = import("ergo-lib-wasm-nodejs");
-import { get_utxos } from "../ergolibUtils";
 // import { signWalletTx } from "../utxos";
 import NftAsset from "../../interfaces/NftAsset";
 
 // import { ErgoBox } from "ergo-lib-wasm-nodejs";
 import { ErgoBox } from "@coinbarn/ergo-ts";
+import { get_utxos } from "../utxos";
 const backupNodeUrl = "https://paidincrypto.io";
 // const nodeUrl = "https://www.test-skyharbor-server.net:9053/";
 const nodeUrl = "https://node.ergo.watch";
@@ -40,7 +40,7 @@ interface BulkListInterface {
 - 
 */
 
-export async function bulkList({ nfts, userAddresses }: BulkListInterface) {
+export async function bulkList({ nfts, userAddresses, price, currency }: BulkListInterface) {
   const wasm = await ergolib;
   const seller = userAddresses[0];
   const blockHeight = await currentBlock();
