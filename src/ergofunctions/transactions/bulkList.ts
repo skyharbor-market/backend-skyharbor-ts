@@ -1,14 +1,17 @@
 import axios from "axios";
+import { Request, Response } from "express";
 import {
   txFee,
   supportedCurrencies,
   listingFee, // MAYBE REMOVE LISTING FEE FOR BACKEND
   CHANGE_BOX_ASSET_LIMIT,
 } from "../consts";
+import { allowedCurrencies } from "../consts";
 import { min_value } from "../conf";
 import { currentBlock, boxById } from "../explorer";
 import { encodeHex, encodeNum, getEncodedBoxSer } from "../serializer";
 import { Address } from "@coinbarn/ergo-ts";
+import { v4 as uuidv4 } from 'uuid'
 let ergolib = import("ergo-lib-wasm-nodejs");
 // import { signWalletTx } from "../utxos";
 import NftAsset from "../../interfaces/NftAsset";
@@ -28,6 +31,11 @@ const serviceAddress = "9h9ssEYyHaosFg6BjZRRr2zxzdPPvdb7Gt7FA8x7N9492nUjpsd";
 interface BulkListInterface {
   nfts: NftAsset[];
   userAddresses: string[]; //All user addresses so we can look through all and check if they have balance
+}
+
+interface RequestBody {
+  nfts: NftAsset[];
+  userAddresses: string[];
 }
 
 /* TODO
@@ -120,7 +128,7 @@ export async function bulkList({ nfts, userAddresses }: BulkListInterface) {
         "Error when calling utils/addressToRaw/useraddress, using backup"
       );
     });
-    
+
   //@ts-ignore
   if (!publicKeyResponse.data) {
     try {
@@ -238,4 +246,101 @@ export async function bulkList({ nfts, userAddresses }: BulkListInterface) {
     // return await signTx(transaction_to_sign)
     // return await signWalletTx(transaction_to_sign);
   }
+}
+
+function checkIfAssetsAreCorrect(nft: NftAsset | NftAsset[]) {
+  let allNfts: NftAsset[];
+
+  if (!Array.isArray(nft)) {
+    allNfts = [nft];
+  } else {
+    allNfts = nft;
+  }
+
+  for (let n of allNfts) {
+    if (
+      !n.id ||
+      !n.price ||
+      !n.currency ||
+      !allowedCurrencies.includes(n?.currency)
+    ) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+// Bulk List and Single List are same method currently
+export async function postBulkList(req: Request, res: Response) {
+  // res.set('Access-Control-Allow-Origin', 'https://skyharbor.io');
+
+  const uuid = uuidv4()
+  const body: RequestBody = req.body;
+  console.log("BODY:", body);
+
+  if (body === undefined) {
+    res.status(400);
+    res.send({
+      message: "API requires a body.",
+      uuid: uuid,
+    });
+    return 400001;
+  } else if (body.nfts === undefined) {
+    return 400002;
+  } else if (!checkIfAssetsAreCorrect(body.nfts)) {
+    res.status(400);
+    res.send({
+      message:
+        "One of your body.nfts objects are built wrong. Must include id, price, and a supported currency.",
+      uuid: uuid,
+    });
+    return 400003;
+  } else if (
+    body.userAddresses === undefined ||
+    body.userAddresses.length === 0
+  ) {
+    res.status(400);
+    res.send({
+      message: "body.userAddresses is not found.",
+      uuid: uuid,
+    });
+    return 400004;
+  }
+  // if req.nfts is not an array, but only a single nft asset, then add the single nft asset into an array: [nft],
+  //   then pass it into bulkList
+  let allNfts = [];
+  if (Array.isArray(body.nfts)) {
+    allNfts = body.nfts;
+  } else {
+    allNfts = [body.nfts];
+  }
+
+  console.log("typeof body.nfts", typeof body.nfts);
+  console.log("allNfts", allNfts);
+
+  let transaction_to_sign;
+  try {
+    transaction_to_sign = await bulkList({
+      nfts: allNfts,
+      userAddresses: body.userAddresses,
+    });
+  } catch (err) {
+    res.status(400);
+    res.send({
+      error: true,
+      message: err,
+      uuid: uuid,
+    });
+    return;
+  }
+
+  // return transaction_to_sign;
+  res.status(200);
+  res.send({
+    error: false,
+    transaction_to_sign: transaction_to_sign,
+    uuid: uuid,
+  });
+  return;
 }
