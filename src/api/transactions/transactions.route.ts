@@ -93,6 +93,7 @@ router.post(["/bulkList", "/list"], async (req: Request, res: Response) => {
       error: true,
       message: err
      });
+     return
   }
 
   // return transaction_to_sign;
@@ -101,6 +102,7 @@ router.post(["/bulkList", "/list"], async (req: Request, res: Response) => {
     error: false,
     transaction_to_sign: transaction_to_sign
   });
+  return
 });
 
 export default router;

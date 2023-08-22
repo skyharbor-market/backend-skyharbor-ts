@@ -4,6 +4,7 @@
 import dotenv from "dotenv"
 import axios from "axios"
 import { decodeNum } from "./serializer"
+import { Address } from "@coinbarn/ergo-ts";
 
 dotenv.config();
 const nodeUrl = "https://paidincrypto.io"
@@ -51,4 +52,12 @@ export async function generate_p2s(script: any) {
 export function getForKey(fav: any) {
   let ret: any[] = []
   return ret
+}
+
+export function isAddressValid(address: string) {
+  try {
+    return new Address(address).isValid();
+  } catch (_) {
+    return false;
+  }
 }

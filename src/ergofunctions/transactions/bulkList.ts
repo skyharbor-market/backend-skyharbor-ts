@@ -44,7 +44,7 @@ interface BulkListInterface {
 export async function bulkList({ nfts, userAddresses, price, currency }: BulkListInterface) {
   const wasm = await ergolib;
   const seller = userAddresses[0];
-  const validdd = await !addressIsValid(seller);
+  const validdd = await addressIsValid(seller);
   console.log("validddd", validdd)
   if (!validdd) {
     console.log("invalid address");
