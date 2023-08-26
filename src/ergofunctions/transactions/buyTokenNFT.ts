@@ -1,7 +1,7 @@
 import { signTx, getListedBox, getOracleBox } from "../helpers";
 import { txFee, CHANGE_BOX_ASSET_LIMIT } from "../consts";
 import { currentBlock } from "../explorer";
-import { encodeHex, getRoyaltyInfo } from "../serializer";
+import { encodeHex, getRoyaltyInfo, RoyaltyInterface } from "../serializer";
 import { minBoxValue } from "@coinbarn/ergo-ts";
 import { getConnectorAddress, getTokens } from "../walletUtils";
 import NftAsset from "../../interfaces/NftAsset";
@@ -44,10 +44,12 @@ export async function buyTokenNFT(buyBox, currencyId) {
   }
   // Get Royalty Values
   // Get Royalty Values
-  let royalties = await getRoyaltyInfo(listedBox.assets[0].tokenId);
+  let royalties: RoyaltyInterface | null = await getRoyaltyInfo(
+    listedBox.assets[0].tokenId
+  );
   let royalty_value;
   let royalty_propBytes;
-  if (royalties.artist) {
+  if (royalties?.artist) {
     royalty_value = Math.floor(
       (listedBox.additionalRegisters.R4.renderedValue * royalties.royalty) /
         1000
@@ -147,7 +149,7 @@ export async function buyTokenNFT(buyBox, currencyId) {
   // Get all wallet tokens/ERG and see if they have enough
   let have = JSON.parse(JSON.stringify(need));
   have["ERG"] += txFee;
-  let ins = [];
+  let ins: any[] = [];
   const keys = Object.keys(have);
 
   const allBal = await getTokens();
@@ -159,17 +161,16 @@ export async function buyTokenNFT(buyBox, currencyId) {
           !Object.keys(allBal).includes(key) || allBal[key].amount < have[key]
       ).length > 0
   ) {
-    showMsg("Not enough balance in the wallet! See FAQ for more info.", true);
-    return;
+    return "Not enough balance in the wallet! See FAQ for more info.";
   }
 
   for (let i = 0; i < keys.length; i++) {
     if (have[keys[i]] <= 0) continue;
     const curIns = await ergo.get_utxos(have[keys[i]].toString(), keys[i]);
     if (curIns !== undefined) {
-      curIns.forEach((bx) => {
+      curIns.forEach((bx: any) => {
         have["ERG"] -= parseInt(bx.value);
-        bx.assets.forEach((ass) => {
+        bx.assets.forEach((ass: any) => {
           if (!Object.keys(have).includes(ass.tokenId)) have[ass.tokenId] = 0;
           have[ass.tokenId] -= parseInt(ass.amount);
         });
@@ -178,8 +179,7 @@ export async function buyTokenNFT(buyBox, currencyId) {
     }
   }
   if (keys.filter((key) => have[key] > 0).length > 0) {
-    showMsg("Not enough balance in the wallet! See FAQ for more info.", true);
-    return;
+    return "Not enough balance in the wallet! See FAQ for more info.";
   }
 
   const changeBox = {
@@ -201,11 +201,7 @@ export async function buyTokenNFT(buyBox, currencyId) {
   };
 
   if (changeBox.assets.length > CHANGE_BOX_ASSET_LIMIT) {
-    showMsg(
-      "Too many NFTs in input boxes to form single change box. Please de-consolidate some UTXOs. Contact the team on discord for more information.",
-      true
-    );
-    return;
+    return "Too many NFTs in input boxes to form single change box. Please de-consolidate some UTXOs. Contact the team on discord for more information.";
   } else {
     let finalOutputs = [paySeller, payService];
     if (payRoyalty) {

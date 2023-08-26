@@ -132,8 +132,7 @@ export async function refund({ cancelBox, userAddresses }: RelistInterface) {
     }
 
     if (keys.filter((key) => have[key] > 0).length > 0) {
-      showMsg("Not enough balance in the wallet! See FAQ for more info.", true);
-      return;
+      return "Not enough balance in the wallet! See FAQ for more info.";
     }
 
     console.log("ins", ins);
@@ -160,11 +159,7 @@ export async function refund({ cancelBox, userAddresses }: RelistInterface) {
     };
 
     if (changeBox.assets.length > CHANGE_BOX_ASSET_LIMIT) {
-      showMsg(
-        "Too many NFTs in input boxes to form single change box. Please de-consolidate some UTXOs. Contact the team on discord for more information.",
-        true
-      );
-      return;
+      return "Too many NFTs in input boxes to form single change box. Please de-consolidate some UTXOs. Contact the team on discord for more information.";
     } else {
       const feeBox = {
         value: txFee.toString(),
@@ -179,7 +174,7 @@ export async function refund({ cancelBox, userAddresses }: RelistInterface) {
         amount: listedBox.assets[0].amount,
       });
 
-      const inputList = ins.map((curIn) => {
+      const inputList = ins.map((curIn: any) => {
         return {
           ...curIn,
           extension: {},
