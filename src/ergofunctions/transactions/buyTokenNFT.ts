@@ -1,10 +1,11 @@
 import { signTx, getListedBox, getOracleBox } from "../helpers";
-import { txFee, CHANGE_BOX_ASSET_LIMIT } from "../consts";
+import { txFee, CHANGE_BOX_ASSET_LIMIT, supportedCurrencies } from "../consts";
 import { currentBlock } from "../explorer";
 import { encodeHex, getRoyaltyInfo, RoyaltyInterface } from "../serializer";
 import { minBoxValue } from "@coinbarn/ergo-ts";
 import { getConnectorAddress, getTokens } from "../walletUtils";
-import NftAsset from "../../interfaces/NftAsset";
+import NftAsset, { Currency } from "../../interfaces/NftAsset";
+import { BuyBoxInterface } from "../../interfaces/BuyBox";
 
 let ergolib = import("ergo-lib-wasm-nodejs");
 
@@ -25,8 +26,20 @@ interface BulkListInterface {
 // -------------------------------------------------- Using Native Tokens --------------------------------------------------
 // -------------------------------------------------------------------------------------------------------------------------
 
-export async function buyTokenNFT(buyBox, currencyId) {
+interface BuyInterface {
+  buyBox: BuyBoxInterface;
+  userAddresses: string[]; //All user addresses so we can look through all and check if they have balance
+  currency: Currency;
+}
+
+export async function buyTokenNFT({
+  buyBox,
+  userAddresses,
+  currency,
+}: BuyInterface) {
   const wasm = await ergolib;
+
+  const currencyId = supportedCurrencies[currency].id;
 
   const buyer = await getConnectorAddress();
   console.log("buyer", buyer);
