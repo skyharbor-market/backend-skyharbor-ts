@@ -11,7 +11,7 @@ import { min_value } from "../conf";
 import { currentBlock, boxById } from "../explorer";
 import { encodeHex, encodeNum, getEncodedBoxSer } from "../serializer";
 import { Address } from "@coinbarn/ergo-ts";
-import { v4 as uuidv4 } from 'uuid'
+import { v4 as uuidv4 } from "uuid";
 let ergolib = import("ergo-lib-wasm-nodejs");
 // import { signWalletTx } from "../utxos";
 import NftAsset from "../../interfaces/NftAsset";
@@ -21,6 +21,7 @@ import { ErgoBox } from "@coinbarn/ergo-ts";
 import { get_utxos } from "../utxos";
 import { addressIsValid } from "../../functions/validationChecks";
 import { Error } from "../../classes/error";
+import { checkIfAssetsAreCorrect } from "../helpers";
 const backupNodeUrl = "https://paidincrypto.io";
 // const nodeUrl = "https://www.test-skyharbor-server.net:9053/";
 const nodeUrl = "https://node.ergo.watch";
@@ -90,12 +91,10 @@ export async function bulkList({ nfts, userAddresses }: BulkListInterface) {
     // console.log("bx", await ergo.get_utxos())
     // console.log("have[keys[i]].toString(): ", have[keys[i]].toString(), keys[i])
 
-
     // iterate through all addresses - make sure no boxes are duplicated if boxes are found
     // for(let add of userAddresses) {
 
     // }
-
 
     // Without dapp connector
     let curIns;
@@ -248,34 +247,11 @@ export async function bulkList({ nfts, userAddresses }: BulkListInterface) {
   }
 }
 
-function checkIfAssetsAreCorrect(nft: NftAsset | NftAsset[]) {
-  let allNfts: NftAsset[];
-
-  if (!Array.isArray(nft)) {
-    allNfts = [nft];
-  } else {
-    allNfts = nft;
-  }
-
-  for (let n of allNfts) {
-    if (
-      !n.id ||
-      !n.price ||
-      !n.currency ||
-      !allowedCurrencies.includes(n?.currency)
-    ) {
-      return false;
-    }
-  }
-
-  return true;
-}
-
 // Bulk List and Single List are same method currently
 export async function postBulkList(req: Request, res: Response) {
   // res.set('Access-Control-Allow-Origin', 'https://skyharbor.io');
 
-  const uuid = uuidv4()
+  const uuid = uuidv4();
   const body: RequestBody = req.body;
   console.log("BODY:", body);
 
