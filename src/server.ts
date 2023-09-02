@@ -14,46 +14,46 @@ will have to make sure it's secured though. updating itself isn't that much of a
 */
 
 // @ts-ignore
-import { siteUser, siteUserPass, epayUser, epayUserPass } from "./consts/users"
-import { initConsts } from "./consts/apiConsts"
+import { siteUser, siteUserPass, epayUser, epayUserPass } from "./consts/users";
+import { initConsts } from "./consts/apiConsts";
 
-import compression from "compression"
-import createError, { HttpError } from "http-errors"
-import express, { Application, NextFunction, Request, Response } from "express"
-import { Pool } from "pg"
-import cors from "cors"
-import path from "path"
-import cookieParser from "cookie-parser"
-import logger from "morgan"
+import compression from "compression";
+import createError, { HttpError } from "http-errors";
+import express, { Application, NextFunction, Request, Response } from "express";
+import { Pool } from "pg";
+import cors from "cors";
+import path from "path";
+import cookieParser from "cookie-parser";
+import logger from "morgan";
 
-import routesRouter from "./api/routes.route"
-import transactionRouter from "./api/transaction.route"
-import collectionsRouter from "./api/collections.route"
-import salesRouter from "./api/sales.route"
-import ergopayRouter from "./api/ergopay.route"
-import metricsRouter from "./api/metrics.route"
-import utilsRouter from "./api/utils.route"
-import transactionsRouter from "./api/transactions/transactions.route"
-import genApiKeyRouter from "./api/genApiKey.route"
+import routesRouter from "./api/routes.route";
+import transactionRouter from "./api/transaction.route";
+import collectionsRouter from "./api/collections.route";
+import salesRouter from "./api/sales.route";
+import ergopayRouter from "./api/ergopay.route";
+import metricsRouter from "./api/metrics.route";
+import utilsRouter from "./api/utils.route";
+import transactionsRouter from "./api/transactions/transactions.route";
+import genApiKeyRouter from "./api/genApiKey.route";
 
 const app: Application = express();
 
-app.use(compression({ filter: shouldCompress }))
+app.use(compression({ filter: shouldCompress }));
 
 function shouldCompress(req: Request, res: Response) {
-  if (req.headers['x-no-compression']) {
+  if (req.headers["x-no-compression"]) {
     // don't compress responses with this request header
-    return false
+    return false;
   }
 
   // fallback to standard filter function
-  return compression.filter(req, res)
+  return compression.filter(req, res);
 }
 
 // app.use(cors());
 
-//const serverHOST = "localhost";
-const serverHOST = "104.248.54.140";
+const serverHOST = "localhost";
+// const serverHOST = "104.248.54.140";
 
 const sApiPool = new Pool({
   host: serverHOST,
@@ -80,25 +80,24 @@ const ePayPool = new Pool({
 });
 
 // view engine setup
-app.set('views', path.join(__dirname, 'views'));
-app.set('view engine', 'jade');
+app.set("views", path.join(__dirname, "views"));
+app.set("view engine", "jade");
 //todo: is there a setting for prod?
-app.use(logger('dev'));
+app.use(logger("dev"));
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static(path.join(__dirname, "public")));
 
-
-app.use('/api/routes', cors(), routesRouter);
-app.use('/api/transaction', cors(), transactionRouter);
-app.use('/api/collections', cors(), collectionsRouter);
-app.use('/api/sales', cors(), salesRouter);
-app.use('/api/ergopay', ergopayRouter);
-app.use('/api/metrics', cors(), metricsRouter);
-app.use('/api/utils', cors(), utilsRouter);
-app.use('/api/transactions', cors(), transactionsRouter);
-app.use('/api/genApiKey', cors(), genApiKeyRouter);
+app.use("/api/routes", cors(), routesRouter);
+app.use("/api/transaction", cors(), transactionRouter);
+app.use("/api/collections", cors(), collectionsRouter);
+app.use("/api/sales", cors(), salesRouter);
+app.use("/api/ergopay", ergopayRouter);
+app.use("/api/metrics", cors(), metricsRouter);
+app.use("/api/utils", cors(), utilsRouter);
+app.use("/api/transactions", cors(), transactionsRouter);
+app.use("/api/genApiKey", cors(), genApiKeyRouter);
 
 // catch 404 and forward to error handler
 app.use(function (req: Request, res: Response, next: NextFunction) {
@@ -106,7 +105,12 @@ app.use(function (req: Request, res: Response, next: NextFunction) {
 });
 
 // error handler
-app.use(function (err: HttpError, req: Request, res: Response, next: NextFunction) {
+app.use(function (
+  err: HttpError,
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
   // set locals, only providing error in development
   // res.locals.message = err.message;
   // res.locals.error = req.app.get('env') === 'development' ? err : {};
@@ -116,14 +120,15 @@ app.use(function (err: HttpError, req: Request, res: Response, next: NextFunctio
   res.send();
 });
 
+export default app;
 
-export default app
-
-export const siteApiPool = sApiPool
-export const ergoPayPool = ePayPool
+export const siteApiPool = sApiPool;
+export const ergoPayPool = ePayPool;
 export const consts = (async () => {
   console.log("Initialising necessary memory from db...");
   const c = await initConsts();
-  if (c !== undefined) { console.log("db mem loaded!"); }
-  return c
+  if (c !== undefined) {
+    console.log("db mem loaded!");
+  }
+  return c;
 })();
