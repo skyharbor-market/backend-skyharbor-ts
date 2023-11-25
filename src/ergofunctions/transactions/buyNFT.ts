@@ -6,6 +6,7 @@ import { get_utxos } from "../utxos";
 import { addressIsValid } from "../../functions/validationChecks";
 import NftAsset from "../../interfaces/NftAsset";
 import { BuyBoxInterface } from "../../interfaces/BuyBox";
+import { Request, Response } from "express";
 
 let ergolib = import("ergo-lib-wasm-nodejs");
 
@@ -236,3 +237,67 @@ export async function buyNFT({ buyBox, userAddresses }: BuyInterface) {
     return transaction_to_sign;
   }
 }
+
+
+// BUY NFT
+interface BuyRequestBody {
+  buyBox: BuyBoxInterface;
+  userAddresses: string[];
+}
+
+export async function postBuyNFT(req: Request, res: Response) {
+
+  const body: BuyRequestBody = req.body;
+  console.log("BODY:", body);
+
+  /* CHECKS:
+    - Check if box_id is a legitimate id
+    - Check if NFT is actually for sale
+  */
+
+  if (body === undefined) {
+    res.status(400);
+    res.send({
+      message: "API requires a body.",
+    });
+    return 400001;
+  } else if (body.buyBox === undefined) {
+    res.status(400);
+    res.send({
+      message: "body.buyBox not found.",
+    });
+    return 400002;
+  } else if (
+    body.userAddresses === undefined ||
+    body.userAddresses.length === 0
+  ) {
+    res.status(400);
+    res.send({
+      message: "body.userAddresses is not found.",
+    });
+    return 400003;
+  }
+
+  let transaction_to_sign;
+  try {
+    transaction_to_sign = await buyNFT({
+      buyBox: body.buyBox,
+      userAddresses: body.userAddresses,
+    });
+  } catch (err) {
+    res.status(400);
+    res.send({
+      error: true,
+      message: err,
+    });
+    return;
+  }
+
+  // return transaction_to_sign;
+  res.status(200);
+  res.send({
+    error: false,
+    transaction_to_sign: transaction_to_sign,
+  });
+  return;
+};

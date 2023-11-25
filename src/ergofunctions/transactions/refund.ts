@@ -4,6 +4,8 @@ import { min_value } from "../conf";
 import { currentBlock } from "../explorer";
 import { encodeHex } from "../serializer";
 import { get_utxos } from "../utxos";
+import { BuyBoxInterface } from "../../interfaces/BuyBox";
+import { Request, Response } from "express";
 
 let ergolib = import("ergo-lib-wasm-nodejs");
 
@@ -18,7 +20,6 @@ const nodeUrl = "https://node.ergo.watch";
 
 interface RelistInterface {
   cancelBox: any;
-  currency: string;
   userAddresses: string[];
 }
 
@@ -77,20 +78,6 @@ export async function refund({ cancelBox, userAddresses }: RelistInterface) {
     };
 
     const unsignedTx = JSON.stringify(transaction_to_sign);
-
-    // if (getWalletType() === "ergopay") {
-    //   const txId = await axios.post(`${skyHarborApi}/api/ergopay/saveTx`, {
-    //     // sendAddress: sendAddress,
-
-    //     txData: unsignedTx,
-    //     uuid: getWalletUUID(),
-    //   });
-    //   console.log("unsigned txId", txId.data);
-    //   return txId.data;
-    // } else {
-    // if not ergopay
-    //   return await signTx(transaction_to_sign);
-    // }
 
     return transaction_to_sign;
   }
@@ -190,35 +177,74 @@ export async function refund({ cancelBox, userAddresses }: RelistInterface) {
         fee: txFee,
       };
 
-      // CODE BELOW DOES NOT WORK AS IT RESTRUCTURES LISTEDBOX
-
-      // ***** BUILD ENTIRE TRANSACTION *****
-      // const unsignedTransaction = new TransactionBuilder(blockHeight.height)
-      // .from(inputBoxes)
-      // .to([changeBox])
-      // .sendChangeTo(refundIssuer)
-      // .payMinFee()
-      // .build()
-      // .toEIP12Object()
-
       const unsignedTx = JSON.stringify(transaction_to_sign);
       console.log("unsignedTxunsignedTx: ", unsignedTx);
-
-      //   if (getWalletType() === "ergopay") {
-      //     const txId = await axios.post(`${skyHarborApi}/api/ergopay/saveTx`, {
-      //       // sendAddress: sendAddress,
-
-      //       txData: unsignedTx,
-      //       uuid: getWalletUUID(),
-      //     });
-      //     console.log("unsigned txId", txId.data);
-      //     return txId.data;
-      //   } else {
-      //     // if not ergopay
-      //     return await signTx(transaction_to_sign);
-      //   }
 
       return transaction_to_sign;
     }
   }
 }
+
+
+// BUY NFT
+interface CancelRequestBody {
+  cancelBox: BuyBoxInterface;
+  userAddresses: string[];
+}
+
+export async function postDelistNFT(req: Request, res: Response) {
+
+  const body: CancelRequestBody = req.body;
+  console.log("BODY:", body);
+
+  /* CHECKS:
+    - Check if box_id is a legitimate id
+    - Check if NFT is actually for sale
+  */
+
+  if (body === undefined) {
+    res.status(400);
+    res.send({
+      message: "API requires a body.",
+    });
+    return 400001;
+  } else if (body.cancelBox === undefined) {
+    res.status(400);
+    res.send({
+      message: "body.cancelBox not found.",
+    });
+    return 400002;
+  } else if (
+    body.userAddresses === undefined ||
+    body.userAddresses.length === 0
+  ) {
+    res.status(400);
+    res.send({
+      message: "body.userAddresses is not found.",
+    });
+    return 400003;
+  }
+
+  let transaction_to_sign;
+  try {
+    transaction_to_sign = await refund({
+      cancelBox: body.cancelBox,
+      userAddresses: body.userAddresses,
+    });
+  } catch (err) {
+    res.status(400);
+    res.send({
+      error: true,
+      message: err,
+    });
+    return;
+  }
+
+  // return transaction_to_sign;
+  res.status(200);
+  res.send({
+    error: false,
+    transaction_to_sign: transaction_to_sign,
+  });
+  return;
+};
