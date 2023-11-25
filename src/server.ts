@@ -83,8 +83,8 @@ export function createServer(): Application {
   return app
 }
 
-const serverHOST = "localhost";
-// const serverHOST = "104.248.54.140";
+//const serverHOST = "localhost";
+const serverHOST = "104.248.54.140";
 
 const sApiPool = new Pool({
   host: serverHOST,
