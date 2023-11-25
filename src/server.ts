@@ -71,6 +71,7 @@ export function createServer(): Application {
   app.use(express.urlencoded({ extended: false }));
   app.use(cookieParser());
   // we need to parse the Request body as json as well as raw Buffer for Stripe webhook events
+  // TODO: need to analyze the performance of doubling the size of the request body
   app.use(bodyParser.json({
     verify: (req: Request, res, buf: Buffer) => {
       req.rawBody = buf
