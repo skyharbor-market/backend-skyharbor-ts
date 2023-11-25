@@ -4,7 +4,8 @@ import { min_value } from "../conf";
 import { currentBlock } from "../explorer";
 import { encodeNum } from "../serializer";
 import { get_utxos } from "../utxos";
-import NftAsset from "../../interfaces/NftAsset";
+import { BuyBoxInterface } from "../../interfaces/BuyBox";
+import { Request, Response } from "express";
 
 let ergolib = import("ergo-lib-wasm-nodejs");
 
@@ -24,11 +25,6 @@ interface RelistInterface {
   relistBox: any;
   list_price: number;
   currency: string;
-  userAddresses: string[];
-}
-
-interface RequestBody {
-  nfts: NftAsset[];
   userAddresses: string[];
 }
 
@@ -163,3 +159,84 @@ export async function relist_NFT({
     // return await signWalletTx(transaction_to_sign);
   }
 }
+
+
+
+// BUY NFT
+interface EditRequestBody {
+  editBox: BuyBoxInterface;
+  currency: string;
+  listPrice: number;
+  userAddresses: string[];
+}
+
+export async function postEditNFT(req: Request, res: Response) {
+
+  const body: EditRequestBody = req.body;
+  console.log("BODY:", body);
+
+  /* CHECKS:
+    - Check if box_id is a legitimate id
+    - Check if NFT is actually for sale
+  */
+
+  if (body === undefined) {
+    res.status(400);
+    res.send({
+      message: "API requires a body.",
+    });
+    return 400001;
+  } else if (body.editBox === undefined) {
+    res.status(400);
+    res.send({
+      message: "body.editBox not found.",
+    });
+    return 400002;
+  } else if (body.currency === undefined) {
+    res.status(400);
+    res.send({
+      message: "body.currency not found.",
+    });
+    return 400003;
+  } else if (body.listPrice === undefined) {
+    res.status(400);
+    res.send({
+      message: "body.listPrice not found.",
+    });
+    return 400003;
+  } else if (
+    body.userAddresses === undefined ||
+    body.userAddresses.length === 0
+  ) {
+    res.status(400);
+    res.send({
+      message: "body.userAddresses is not found.",
+    });
+    return 400004;
+  }
+
+  let transaction_to_sign;
+  try {
+    transaction_to_sign = await relist_NFT({
+      relistBox: body.editBox,
+      currency: body.currency,
+      list_price: body.listPrice,
+      userAddresses: body.userAddresses,
+    });
+  } catch (err) {
+    res.status(400);
+    res.send({
+      error: true,
+      message: err,
+    });
+    return;
+  }
+
+  // return transaction_to_sign;
+  res.status(200);
+  res.send({
+    error: false,
+    transaction_to_sign: transaction_to_sign,
+  });
+  return;
+};

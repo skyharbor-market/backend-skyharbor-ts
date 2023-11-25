@@ -1,6 +1,7 @@
 import express from "express";
 import { postBuyNFT } from "../../ergofunctions/transactions/buyNFT";
 import { postBulkList } from "../../ergofunctions/transactions/bulkList";
+import { postEditNFT } from "../../ergofunctions/transactions/relistNFT";
 
 const router = express.Router();
 

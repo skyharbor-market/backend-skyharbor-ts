@@ -186,7 +186,6 @@ export async function refund({ cancelBox, userAddresses }: RelistInterface) {
 }
 
 
-// BUY NFT
 interface CancelRequestBody {
   cancelBox: BuyBoxInterface;
   userAddresses: string[];
