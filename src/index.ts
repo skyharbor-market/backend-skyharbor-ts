@@ -6,6 +6,7 @@
 
 import app from "./server"
 import dotenv from "dotenv"
+import logger from "./logger"
 
 dotenv.config()
 const host = process.env.HOST || "0.0.0.0"
@@ -21,8 +22,9 @@ const port = normalizePort(process.env.PORT || '8080');
  */
 
 app.on('error', onError)
-app.listen(Number(port), host, async () => {
-  console.log(`listening on port ${port}!`)
+
+export const server = app.listen(Number(port), host, async () => {
+  logger.info(`listening on port ${port}!`)
 })
 
 /**
@@ -61,11 +63,11 @@ function onError(error: any) {
   // handle specific listen errors with friendly messages
   switch (error.code) {
     case 'EACCES':
-      console.error(bind + ' requires elevated privileges');
+      logger.error(`${bind} requires elevated privileges`)
       process.exit(1);
       break;
     case 'EADDRINUSE':
-      console.error(bind + ' is already in use');
+      logger.error(`${bind} is already in use`)
       process.exit(1);
       break;
     default:
