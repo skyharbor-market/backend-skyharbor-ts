@@ -51,13 +51,13 @@ declare global {
 }
 
 function shouldCompress(req: Request, res: Response) {
-  if (req.headers['x-no-compression']) {
+  if (req.headers["x-no-compression"]) {
     // don't compress responses with this request header
-    return false
+    return false;
   }
 
   // fallback to standard filter function
-  return compression.filter(req, res)
+  return compression.filter(req, res);
 }
 
 // Need to modularize this to run jest test cases
@@ -82,8 +82,8 @@ export function createServer(): Application {
   return app
 }
 
-//const serverHOST = "localhost";
-const serverHOST = "104.248.54.140";
+const serverHOST = "localhost";
+// const serverHOST = "104.248.54.140";
 
 const sApiPool = new Pool({
   host: serverHOST,
@@ -166,7 +166,12 @@ app.use(function (req: Request, res: Response, next: NextFunction) {
 });
 
 // error handler
-app.use(function (err: HttpError, req: Request, res: Response, next: NextFunction) {
+app.use(function (
+  err: HttpError,
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
   // set locals, only providing error in development
   // res.locals.message = err.message;
   // res.locals.error = req.app.get('env') === 'development' ? err : {};
@@ -176,11 +181,10 @@ app.use(function (err: HttpError, req: Request, res: Response, next: NextFunctio
   res.send();
 });
 
+export default app;
 
-export default app
-
-export const siteApiPool = sApiPool
-export const ergoPayPool = ePayPool
+export const siteApiPool = sApiPool;
+export const ergoPayPool = ePayPool;
 export const consts = (async () => {
   logger.info("Initialising necessary memory from db...")
   const c = await initConsts();
