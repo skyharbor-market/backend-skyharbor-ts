@@ -2,6 +2,7 @@ import express from "express";
 import { postBuyNFT } from "../../ergofunctions/transactions/buyNFT";
 import { postBulkList } from "../../ergofunctions/transactions/bulkList";
 import { postEditNFT } from "../../ergofunctions/transactions/relistNFT";
+import { postDelistNFT } from "../../ergofunctions/transactions/refund";
 
 const router = express.Router();
 
@@ -12,7 +13,7 @@ router.post(["/bulkList", "/list"], postBulkList);
 
 router.post(["/buy"], postBuyNFT);
 
-router.post(["/delist"], postBuyNFT);
+router.post(["/delist"], postDelistNFT);
 
 router.post(["/edit"], postEditNFT);
 
