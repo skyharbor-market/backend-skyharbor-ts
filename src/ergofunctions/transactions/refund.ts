@@ -29,7 +29,15 @@ export async function refund({ cancelBox, userAddresses }: RelistInterface) {
   const refundIssuer = userAddresses[0];
   const blockHeight = await currentBlock();
 
-  let listedBox = await getListedBox(cancelBox);
+
+  let tempBox = cancelBox
+  if(typeof cancelBox === "string") {
+    tempBox = {
+      box_id: cancelBox
+    }
+  }
+
+  let listedBox = await getListedBox(tempBox);
   listedBox.additionalRegisters.R4 =
     listedBox.additionalRegisters.R4?.serializedValue ||
     listedBox.additionalRegisters.R4;
