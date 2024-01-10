@@ -158,7 +158,8 @@ export async function bulkList({ nfts, userAddresses }: BulkListInterface) {
 
     const encodedSer = await getEncodedBoxSer(artBox).catch((err) => {
       console.log("Error: ", err);
-      return "Listing is currently unavailable, please try again later";
+      throw "Listing is currently unavailable, please try again later";
+      // return "Listing is currently unavailable, please try again later";
     });
 
     if (!encodedSer) {
