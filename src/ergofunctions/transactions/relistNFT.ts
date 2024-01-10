@@ -4,7 +4,7 @@ import { min_value } from "../conf";
 import { currentBlock } from "../explorer";
 import { encodeNum } from "../serializer";
 import { get_utxos } from "../utxos";
-import { BuyBoxInterface } from "../../interfaces/BuyBox";
+import { BuyBoxInterface, EmptyBuyBoxInterface } from "../../interfaces/BuyBox";
 import { Request, Response } from "express";
 
 let ergolib = import("ergo-lib-wasm-nodejs");
@@ -22,7 +22,7 @@ const minterServiceAddress =
 // ----------------------------------------------------- Relist an NFT -----------------------------------------------------
 // -------------------------------------------------------------------------------------------------------------------------
 interface RelistInterface {
-  relistBox: any;
+  relistBox: BuyBoxInterface | EmptyBuyBoxInterface;
   list_price: number;
   currency: string;
   userAddresses: string[];
@@ -40,7 +40,14 @@ export async function relist_NFT({
 
   const blockHeight = await currentBlock();
 
-  let listedBox = await getListedBox(relistBox);
+  let tempBox = relistBox
+  if(typeof relistBox === "string") {
+    tempBox = {
+      box_id: relistBox
+    }
+  }
+
+  let listedBox = await getListedBox(tempBox as BuyBoxInterface);
   listedBox.additionalRegisters.R4 =
     listedBox.additionalRegisters.R4.serializedValue;
   listedBox.additionalRegisters.R5 =
@@ -164,9 +171,9 @@ export async function relist_NFT({
 
 // BUY NFT
 interface EditRequestBody {
-  editBox: BuyBoxInterface;
+  editBox: BuyBoxInterface | EmptyBuyBoxInterface;
   currency: string;
-  listPrice: number;
+  newPrice: number;
   userAddresses: string[];
 }
 
@@ -198,10 +205,10 @@ export async function postEditNFT(req: Request, res: Response) {
       message: "body.currency not found.",
     });
     return 400003;
-  } else if (body.listPrice === undefined) {
+  } else if (body.newPrice === undefined) {
     res.status(400);
     res.send({
-      message: "body.listPrice not found.",
+      message: "body.newPrice not found.",
     });
     return 400003;
   } else if (
@@ -220,7 +227,7 @@ export async function postEditNFT(req: Request, res: Response) {
     transaction_to_sign = await relist_NFT({
       relistBox: body.editBox,
       currency: body.currency,
-      list_price: body.listPrice,
+      list_price: body.newPrice,
       userAddresses: body.userAddresses,
     });
   } catch (err) {
