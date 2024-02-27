@@ -185,15 +185,15 @@ export async function bulkList({ nfts, userAddresses }: BulkListInterface) {
   }
   // -----------Output boxes--------------
 
-  // const payServiceFee = {
-  //   value: (listingFee * nfts.length).toString(),
-  //   ergoTree: wasm.Address.from_mainnet_str(serviceAddress)
-  //     .to_ergo_tree()
-  //     .to_base16_bytes(),
-  //   assets: [],
-  //   creationHeight: blockHeight.height,
-  //   additionalRegisters: {},
-  // };
+  const payServiceFee = {
+    value: (listingFee * nfts.length).toString(),
+    ergoTree: wasm.Address.from_mainnet_str(serviceAddress)
+      .to_ergo_tree()
+      .to_base16_bytes(),
+    assets: [],
+    creationHeight: blockHeight.height,
+    additionalRegisters: {},
+  };
 
   const changeBox = {
     value: (-have["ERG"]).toString(),
@@ -226,11 +226,12 @@ export async function bulkList({ nfts, userAddresses }: BulkListInterface) {
     };
 
     // Version with service fee
-    // let outputs = listedBoxes.concat([payServiceFee, changeBox, feeBox]);
+    // @ts-ignore
+    let outputs = listedBoxes.concat([payServiceFee, changeBox, feeBox]);
 
     // Version without service fee
     // @ts-ignore
-    let outputs = listedBoxes.concat([changeBox, feeBox]);
+    // let outputs = listedBoxes.concat([changeBox, feeBox]);
 
     const transaction_to_sign = {
       //@ts-ignore
