@@ -9,7 +9,7 @@ import {
 import { allowedCurrencies } from "../consts";
 import { min_value } from "../conf";
 import { currentBlock, boxById, explorerApi } from "../explorer";
-import { encodeHex, encodeNum, getEncodedBoxSer } from "../serializer";
+import { currencyToLong, encodeHex, encodeNum, getEncodedBoxSer } from "../serializer";
 import { Address } from "@coinbarn/ergo-ts";
 import { v4 as uuidv4 } from "uuid";
 let ergolib = import("ergo-lib-wasm-nodejs");
@@ -167,7 +167,7 @@ export async function bulkList({ nfts, userAddresses }: BulkListInterface) {
     }
 
     let registers = {
-      R4: await encodeNum(nftOut?.price?.toString()),
+      R4: await encodeNum(currencyToLong(nftOut?.price, supportedCurrencies[nftOut?.currency]?.decimal)?.toString()),
       R5: await encodeHex(new Address(seller).ergoTree),
       R6: encodedSer,
       R7: "07" + publicKey,
