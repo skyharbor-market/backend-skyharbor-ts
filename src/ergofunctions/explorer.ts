@@ -8,7 +8,7 @@ const explorer = Explorer.mainnet;
 export const explorerApi = 'https://api.ergoplatform.com/api/v0'
 export const explorerApiV1 = 'https://api.ergoplatform.com/api/v1'
 
-export async function getRequest(url: any, api = explorerApi) {
+export async function getRequest(url: any, api = explorerApiV1) {
   return await get(api + url);
 }
 
@@ -106,8 +106,8 @@ export function boxByAddress(id: any) {
   return getRequest(`/transactions/boxes/${id}`)
 }
 
-export function boxById(id: any) {
-  return getRequest(`/transactions/boxes/${id}`)
+export function boxById(id: any, api = explorerApiV1) {
+  return getRequest(`/transactions/boxes/${id}`, api)
 }
 
 export async function followAuction(id: any) {

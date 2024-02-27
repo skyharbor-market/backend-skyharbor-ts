@@ -8,7 +8,7 @@ import {
 } from "../consts";
 import { allowedCurrencies } from "../consts";
 import { min_value } from "../conf";
-import { currentBlock, boxById } from "../explorer";
+import { currentBlock, boxById, explorerApi } from "../explorer";
 import { encodeHex, encodeNum, getEncodedBoxSer } from "../serializer";
 import { Address } from "@coinbarn/ergo-ts";
 import { v4 as uuidv4 } from "uuid";
@@ -153,7 +153,7 @@ export async function bulkList({ nfts, userAddresses }: BulkListInterface) {
   let listedBoxes: ErgoBox[] = [];
 
   for (nftOut of nfts) {
-    let artBox = await boxById(nftOut.id);
+    let artBox = await boxById(nftOut.id, explorerApi);
     let p2s = supportedCurrencies[nftOut.currency].contractAddress;
 
     const encodedSer = await getEncodedBoxSer(artBox).catch((err) => {
