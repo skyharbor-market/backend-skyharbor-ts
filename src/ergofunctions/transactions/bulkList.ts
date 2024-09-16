@@ -214,7 +214,7 @@ export async function bulkList({ nfts, userAddresses }: BulkListInterface) {
   };
 
   if (changeBox.assets.length > CHANGE_BOX_ASSET_LIMIT) {
-    return "Too many NFTs in input boxes to form single change box. Please de-consolidate some UTXOs. Contact the team on discord for more information.";
+    throw "Too many NFTs in input boxes to form single change box. Please de-consolidate some UTXOs. Contact the team on discord for more information.";
   } else {
     const feeBox = {
       value: txFee.toString(),
