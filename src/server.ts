@@ -1,16 +1,16 @@
 /*
-TODO: 
-- ADD TIMESTAMPS TO LOGS 
+TODO:
+- ADD TIMESTAMPS TO LOGS
 
 - todo: read in the database settings / passwords etc from a file
-- make a method to add descriptions or update shit on collections maybe? might be quicker than logging into the node. 
+- make a method to add descriptions or update shit on collections maybe? might be quicker than logging into the node.
 will have to make sure it's secured though. updating itself isn't that much of an issue. inserting could cause scams
 - call for all sales, have ?status param(active,inactive,complete,cancelled) ?collection (collection name as text)
 - call for valid addresses - provide all as long list for ease, doesn't need to be filtered by collection
 - call for prices of collection completed sales,  ?start-date ?end-date. will return array of dates, with items { 'floor':'12', 'avg':'123' } or something
 - ADD PG USER FOR READ-ONLY, USE THAT USER IN THIS API. THIS API is NO-UPDATE. NO FKKN UPDATES.
 
-- check logger docs for prod setting, 404 should not display our server file structure 
+- check logger docs for prod setting, 404 should not display our server file structure
 */
 
 // @ts-ignore
@@ -106,7 +106,6 @@ const ePayPool = new Pool({
   password: epayUserPass,
   idleTimeoutMillis: 10000,
   connectionTimeoutMillis: 2000,
-  // 50 seems functional, probably should be less.
   max: 50,
 });
 

@@ -19,10 +19,19 @@ export async function get(url: any, apiKey = '') {
         'Content-Type': 'application/json',
         api_key: apiKey,
       }
-    }).then(res => res.json())
-    return result
+    })
+
+    if (!result.ok) {
+      throw new Error(`Response status: ${result.status}`)
+    }
+
+    const json = await result.json()
+    return json
   } catch (e) {
     console.error(e)
+    if (e.message === "Response status: 503") {
+      throw e
+    }
     return []
   }
 }

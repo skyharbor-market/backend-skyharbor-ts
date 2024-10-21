@@ -2,11 +2,17 @@ import { Explorer, Transaction } from "@coinbarn/ergo-ts"
 // import { friendlyToken, getMyBids, setMyBids, showStickyMsg } from "./helpers"
 import { get } from "./rest"
 import { auctionAddress, auctionAddresses, auctionTrees } from "./consts"
+import { HTTP_503_WAIT_TIME_MS } from "../consts/salesScanner"
 // import { longToCurrency } from "./serializer"
+//import logger from "../logger"
 
 const explorer = Explorer.mainnet;
 export const explorerApi = 'https://api.ergoplatform.com/api/v0'
 export const explorerApiV1 = 'https://api.ergoplatform.com/api/v1'
+
+const sleep = async (durationMs: number) => {
+  return new Promise(resolve => setTimeout(resolve, durationMs));
+}
 
 export async function getRequest(url: any, api = explorerApiV1) {
   return await get(api + url)
@@ -37,12 +43,69 @@ export function unspentBoxesFor(address: any) {
   return getRequest(`/transactions/boxes/byAddress/unspent/${address}`)
 }
 
-export async function unspentBoxesForV1(address: any) {
-  return getRequest(`/boxes/unspent/byAddress/${address}`, explorerApiV1).then(
-    (res) => {
-      return res.items
+export async function unspentBoxesForV1(address: any, offset = "0", limit = "50") {
+  return getRequest(
+    `/boxes/unspent/byAddress/${address}?offset=${offset}&limit=${limit}`, explorerApiV1
+  ).then((res) => res.items
+  ).catch(err => {
+    throw err
+  })
+}
+
+export async function getAllUtxosByAddress(logger: any, address: string): Promise<any[]> {
+  let offset = 0
+  let limit = 500
+  let utxos: any[] = []
+  // get all unspent UTXOs
+  for (; ;) {
+    try {
+      const batch = await unspentBoxesForV1(address, offset.toString(), limit.toString())
+      if (batch.length > 0) {
+        utxos = utxos.concat(batch)
+        offset += limit
+      } else {
+        break
+      }
+    } catch (err) {
+      // TODO: implement retry count
+      if (err.message === "Response status: 503") {
+        // delay retry
+        logger.next({ message: `external API call returned status 503 using address ${address} - delaying retry for ${HTTP_503_WAIT_TIME_MS}ms` })
+        await sleep(HTTP_503_WAIT_TIME_MS)
+        continue
+      } else {
+        break
+      }
     }
-  )
+  }
+
+  // reset batch offsets
+  offset = 0
+  limit = 500
+  // inc. mempool
+  for (; ;) {
+    try {
+      const batch = await getUnconfirmedTxsFor(address, offset.toString(), limit.toString())
+      if (batch.length > 0) {
+        utxos = utxos.concat(batch)
+        offset += limit
+      } else {
+        break
+      }
+    } catch (err) {
+      // TODO: implement retry count
+      if (err.message === "Response status: 503") {
+        // delay retry
+        logger.next({ message: `external API call returned status 503 using address ${address} - delaying retry for ${HTTP_503_WAIT_TIME_MS}ms` })
+        await sleep(HTTP_503_WAIT_TIME_MS)
+        continue
+      } else {
+        break
+      }
+    }
+  }
+
+  return utxos
 }
 
 export function getBoxesForAsset(asset: any) {
@@ -55,11 +118,13 @@ export function getActiveAuctions(addr: any) {
     .then((boxes) => boxes.filter((box: any) => box.assets.length > 0));
 }
 
-export function getUnconfirmedTxsFor(addr: any) {
+export async function getUnconfirmedTxsFor(addr: any, offset = "0", limit = "50") {
   return getRequest(
-    `/mempool/transactions/byAddress/${addr}`, explorerApiV1
-  )
-    .then((res) => res.items);
+    `/mempool/transactions/byAddress/${addr}?offset=${offset}&limit=${limit}`, explorerApiV1
+  ).then((res) => res.items
+  ).catch(err => {
+    throw err
+  })
 }
 
 export async function getTokenBoxV1(tokenId: any) {
@@ -110,6 +175,10 @@ export function boxById(id: any) {
   return getRequest(`/transactions/boxes/${id}`)
 }
 
+export async function boxByBoxId(id: any) {
+  return getRequest(`/boxes/${id}`, explorerApiV1)
+}
+
 export async function followAuction(id: any) {
   let cur = await getRequest(`/boxes/${id}`, explorerApiV1)
   if (!cur.id) cur.id = cur.boxId
@@ -122,13 +191,13 @@ export async function followAuction(id: any) {
   return cur
 }
 
-export function txByAddress(addr: any) {
+export async function txByAddress(addr: any) {
   return getRequest(`/addresses/${addr}/transactions`)
     .then((res) => res.items);
 }
 
-export function txById(id: any) {
-  return getRequest(`/transactions/${id}`)
+export async function txById(id: any) {
+  return getRequest(`/transactions/${id}`, explorerApiV1)
 }
 
 export async function getSpendingTx(boxId: any) {
@@ -154,4 +223,3 @@ export async function getBalance(addr: any) {
 function res(res: any, arg1: (unknown: any) => any) {
   throw new Error("Function not implemented.");
 }
-
