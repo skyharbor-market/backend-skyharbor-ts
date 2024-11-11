@@ -6,6 +6,7 @@ import { encodeNum } from "../serializer";
 import { get_utxos } from "../utxos";
 import { BuyBoxInterface, EmptyBuyBoxInterface } from "../../interfaces/BuyBox";
 import { Request, Response } from "express";
+import { addressIsValid } from "../../functions/validationChecks";
 
 let ergolib = import("ergo-lib-wasm-nodejs");
 
@@ -37,6 +38,12 @@ export async function relist_NFT({
   const wasm = await ergolib;
 
   const relister = userAddresses[0];
+  
+  const isValidAdd = await addressIsValid(relister);
+  if (!isValidAdd) {
+    console.log("invalid address");
+    throw "Address is not valid";
+  }
 
   const blockHeight = await currentBlock();
 
@@ -47,7 +54,14 @@ export async function relist_NFT({
     }
   }
 
-  let listedBox = await getListedBox(tempBox as BuyBoxInterface);
+  let listedBox;
+  try {
+    listedBox = await getListedBox(tempBox as BuyBoxInterface);
+  } catch (err) {
+    console.log("ERRRE", err);
+    throw "Error getting NFT listing."
+  }
+
   listedBox.additionalRegisters.R4 =
     listedBox.additionalRegisters.R4.serializedValue;
   listedBox.additionalRegisters.R5 =
@@ -56,7 +70,8 @@ export async function relist_NFT({
     listedBox.additionalRegisters.R7.serializedValue;
   const p2s = supportedCurrencies[currency].contractAddress;
 
-  let need = { ERG: min_value + txFee };
+  const requiredErg = min_value + txFee;
+  let need = { ERG: requiredErg };
   // Get all wallet tokens/ERG and see if they have enough
   let have = JSON.parse(JSON.stringify(need));
   have["ERG"] += txFee - listedBox.value;
@@ -66,7 +81,6 @@ export async function relist_NFT({
 
   for (let i = 0; i < keys.length; i++) {
     if (have[keys[i]] <= 0) continue;
-    // const curIns = await ergo.get_utxos(have[keys[i]].toString(), keys[i]);
     let curIns;
     // Without dapp connector
     if (keys[i] === "ERG") {
@@ -88,7 +102,7 @@ export async function relist_NFT({
   }
 
   if (keys.filter((key) => have[key] > 0).length > 0) {
-    return "Not enough balance in the wallet! See FAQ for more info.";
+    throw "Not enough balance in the wallet! See FAQ for more info";
   }
 
   // -----------Output boxes--------------
@@ -144,7 +158,6 @@ export async function relist_NFT({
       additionalRegisters: {},
     };
 
-    // console.log(paySeller.value + payService.value + payRoyalty.value + buyerGets.value + feeBox.value)
     let inputList = ins.map((curIn: any) => {
       return {
         ...curIn,
@@ -158,18 +171,12 @@ export async function relist_NFT({
       dataInputs: [],
       fee: txFee,
     };
-    console.log("transaction_to_sign", transaction_to_sign);
 
     return transaction_to_sign;
-
-    // return await signTx(transaction_to_sign)
-    // return await signWalletTx(transaction_to_sign);
   }
 }
 
-
-
-// BUY NFT
+// RELIST NFT
 interface EditRequestBody {
   editBox: BuyBoxInterface | EmptyBuyBoxInterface;
   currency: string;
@@ -178,7 +185,6 @@ interface EditRequestBody {
 }
 
 export async function postEditNFT(req: Request, res: Response) {
-
   const body: EditRequestBody = req.body;
   console.log("BODY:", body);
 
@@ -239,7 +245,6 @@ export async function postEditNFT(req: Request, res: Response) {
     return;
   }
 
-  // return transaction_to_sign;
   res.status(200);
   res.send({
     error: false,
