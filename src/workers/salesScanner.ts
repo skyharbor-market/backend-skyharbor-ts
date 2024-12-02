@@ -3,9 +3,13 @@ import { expose } from "threads/worker"
 import { SalesScanner } from "../classes/salesScanner"
 import {
   getCurrentBlockHeight,
-  getMainWalletAddress } from "../ergofunctions/node"
-import { getAllUtxosByAddress } from "../ergofunctions/explorer"
-import { NODE_BASE_URL } from "../consts/salesScanner"
+  getMainWalletAddress
+} from "../ergofunctions/node"
+import {
+  getAllUtxosByAddress,
+  redundancyGetUtxosMempoolOnly
+} from "../ergofunctions/explorer"
+import { checkBalancePayTeamWithInputLimit } from "../functions/payteam"
 import {
   getActiveSalesAddresses,
   deactivateSalesNotOnActiveAddresses,
@@ -14,20 +18,29 @@ import {
   getAllInactiveSales } from "../scanner/db"
 import { SalesAddress } from "../classes/salesAddress"
 
+import * as dotenv from "dotenv"
+import path from "path"
+
+const envFilePath = path.resolve(__dirname, './.env')
+dotenv.config({ path: envFilePath })
+
+const SCANNER_BLOCK_POLL_RATE_MS = Number(process.env.SCANNER_BLOCK_POLL_RATE_MS) || 20000
+
 const sleep = async (durationMs: number) => {
   return new Promise((resolve) => setTimeout(resolve, durationMs))
 }
 
 const scanner = new SalesScanner()
 let logger = new Subject()
+let currentHeight: number = 1
 
 const salesScanner = {
   async init() {
     try {
       // loop to check if ergo node is up
-      let currentHeight: number = await getCurrentBlockHeight()
+      currentHeight = await getCurrentBlockHeight()
       while (currentHeight === 0) {
-        logger.next({ message: `cannot communicate with ergo node, retrying in 10 seconds - NODE_BASE_URL: ${NODE_BASE_URL}` })
+        logger.next({ message: `cannot communicate with ergo node, retrying in 10 seconds - NODE_BASE_URL: ${process.env.NODE_BASE_URL}` })
         await sleep(10000)
         currentHeight = await getCurrentBlockHeight()
       }
@@ -97,14 +110,10 @@ const salesScanner = {
   async processNewSales() {
     try {
       for (const sa of scanner.SalesAddresses) {
-        logger.next(`processing sales address ${sa.address}`)
+        logger.next({ message: `processing sales address ${sa.address}` })
         const utxosForSa = await getAllUtxosByAddress(logger, sa.address)
         await scanner.processUtxosUnderSa(logger, utxosForSa, sa)
       }
-      // This is for testing a single SalesAddress
-      // logger.next({ message: `processing sales address ${scanner.SalesAddresses[2].address}` })
-      // const utxosForSa = await getAllUtxosByAddress(logger, scanner.SalesAddresses[2].address)
-      // await scanner.processUtxosUnderSa(logger, utxosForSa, scanner.SalesAddresses[2])
     } catch(error) {
       throw error
     }
@@ -112,14 +121,62 @@ const salesScanner = {
   async processInactiveSales() {
     const inActiveSales = await getAllInactiveSales()
     if (typeof inActiveSales !== "undefined") {
-      // TODO: finish this function
       await scanner.finaliseInactiveSales(logger, inActiveSales.rows)
     } else {
-
+      logger.next({ message: "No Inactive Sales found" })
     }
   },
   async scannerLoop() {
-    // TODO: Complete sales scanner infinite loop workflow
+    logger.next({ message: "Start of infinite sales scanner loop" })
+    while (true) {
+      try {
+        let newBlock = await scanner.checkForNewBlock(currentHeight)
+        if (newBlock) {
+          logger.next({ message: `new block found at height: ${newBlock}` })
+
+          for (const sa of scanner.SalesAddresses) {
+            //TODO: need method to get utxo's under sa and store in local storage, so below 2 methods don't have to do it twice. implement below too.
+            // this may already be done with utxos for sa and you forgot to remove todo idk
+            const utxosForSa = await getAllUtxosByAddress(logger, sa.address)
+
+            //check mempool and address for activeSales, mark as inactive.
+            await scanner.markInactiveSalesForSaOnDb(logger, utxosForSa, sa)
+            // process any new utxo's
+            await scanner.processUtxosUnderSa(logger, utxosForSa, sa)
+          }
+
+          //sleep to allow txs to finalise
+          await sleep(scanner.POST_NEW_BLOCK_WAIT_TIME_MS)
+
+          //check any tx's which confirmed in block
+          await this.processInactiveSales()
+          logger.next({ message: "inactive sales processed..." })
+
+          logger.next({ message: "paying team..." })
+          try {
+              await checkBalancePayTeamWithInputLimit(scanner.NODE_MAIN_WALLET_ADDRESS)
+          } catch (error) {
+              logger.next({ message: "Error occured whilst trying to pay team!", error: error})
+          }
+        } else {
+          // should be once every 20s if blockPollRate is 1 seconds, once every 20s is blockPollrate is 10s.
+          logger.next({ message: "Still alive, getting mempool utxo's"})
+          //for each sales address being tracked -
+          // just process new utxo's in the mempool, add to sales.
+
+          for (const sa of scanner.SalesAddresses) {
+            const utxosMem = await redundancyGetUtxosMempoolOnly(logger, sa.address);
+            await scanner.processUtxosUnderSa(logger, utxosMem, sa)
+          }
+        }
+
+        // wait 'blockPollRateMs' - tune with program loop duration to exec reliably?
+        await sleep(SCANNER_BLOCK_POLL_RATE_MS)
+
+      } catch (error) {
+        throw error
+      }
+    }
   },
   finish() {
     logger.complete()

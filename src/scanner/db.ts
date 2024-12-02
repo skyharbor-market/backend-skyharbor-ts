@@ -373,7 +373,7 @@ export async function writeFinishedSaleToDb(s: Sale): Promise<void> {
   logger.info(`marking sale as ${s.status}: ${s.boxId}`)
 
   const dbQuery: QueryConfig<any[]> = {
-    text: "update public.sales set status = $1, buyer_address = $2, buyer_ergotree = $3, spent_tx = $4, box_json = $5, where box_id = $6",
+    text: "update public.sales set status = $1, buyer_address = $2, buyer_ergotree = $3, spent_tx = $4, box_json = $5 where box_id = $6",
     values: [`${s.status}`, `${s.buyerAddr}`, `${s.buyerErgoTree}`, `${s.spentTx}`, `${s.boxJsonStr}`, `${s.boxId}`]
   }
 

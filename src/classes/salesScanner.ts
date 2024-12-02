@@ -5,8 +5,16 @@ import { SalesAddress } from "./salesAddress"
 import { SaleBox } from "./saleBox"
 import { Token } from "./token"
 import { Sale } from "./sale"
-import { checkTokenExistsOnDb, addTokenToDb, addOrReactivateSale, writeFinishedSaleToDb } from "../scanner/db"
+import {
+  checkTokenExistsOnDb,
+  addTokenToDb,
+  addOrReactivateSale,
+  writeFinishedSaleToDb,
+  getActiveSalesBySaId,
+  batchMarkInactiveSalesBySaId
+} from "../scanner/db"
 import { boxByBoxId } from '../ergofunctions/explorer'
+import { getCurrentBlockHeight,} from "../ergofunctions/node"
 
 const envFilePath = path.resolve(__dirname, './.env')
 dotenv.config({ path: envFilePath })
@@ -180,17 +188,71 @@ export class SalesScanner {
     return sale
   }
 
-  public static checkForNewBlock(prevHeight: number) {
+  public async checkForNewBlock(prevHeight: number): Promise<boolean> {
+    const height = await getCurrentBlockHeight()
 
+    if (height === prevHeight) {
+      return false
+    } else {
+      return true
+    }
+  }
+
+  public async markInactiveSalesForSaOnDb(logger: any, utxos: any[], salesAddr: SalesAddress): Promise<void> {
+    logger.next({ message: "checking for inactive sales on db..."})
+
+    let activeSalesUnderSa: string[] = []
+
+    for (const utxo of utxos) {
+      activeSalesUnderSa.push(utxo.boxId)
+    }
+
+    //grab db rows for all active
+    const rs = await getActiveSalesBySaId(salesAddr.id)
+    const dbActiveSalesForSa: string[] = []
+    if (typeof rs !== "undefined") {
+      rs.rows.forEach((row) => {
+        dbActiveSalesForSa.push(row.box_id)
+      })
+    } else {
+      logger.next({ message: `no sales from db are inactive on sales address: ${salesAddr.currency} version: ${salesAddr.version} id: ${salesAddr.id}` })
+      return
+    }
+
+    const inactiveSales: string[] = []
+    // check all items in activeSales list against unspent UTXO's inc. mempool
+    dbActiveSalesForSa.forEach((sale) => {
+      // if item in activeSales is NOT in unspent UTXO's
+      if (!activeSalesUnderSa.includes(sale)) {
+        logger.next({ message: `sale with box id: ${sale} is inactive!` })
+        inactiveSales.push(sale)
+      }
+    })
+
+    this.ActiveSalesUnderAllSa = this.ActiveSalesUnderAllSa.filter((sale) => {
+      !inactiveSales.includes(sale)
+    })
+    activeSalesUnderSa = activeSalesUnderSa.filter((sale) => {
+      !inactiveSales.includes(sale)
+    })
+
+    if (inactiveSales.length > 0) {
+      logger.next({ message: "marking inactive sales on database.." })
+      // batch mark all 'just spent' as 'inactive' on database to remove from site UI immediately
+      await batchMarkInactiveSalesBySaId(inactiveSales, salesAddr.id)
+      // attempt to process each 'just spent' box under this sale id
+      // it is fine to do the below here for a single sa's inactive sales, and then do later in main event loop for any stragglers.
+      await this.finaliseInactiveSales(logger, inactiveSales)
+    }
   }
 
   // attempts to get info on the inactive sales, writes info to db if found.
-  public async finaliseInactiveSales(logger: any, inactiveSales: string[] ) {
+  public async finaliseInactiveSales(logger: any, inactiveSales: any[] ) {
     logger.next({ message: "attempting to finalise inactive sales..."})
     const removeInactive: string[] = []
     // check all unspent UTXO's against activeSales list
     for (const boxId of inactiveSales) {
-      const box = await boxByBoxId(boxId)
+      const box = await boxByBoxId(boxId.box_id)
       if (Object.keys(box).length > 0 || box.length > 0) {
 
         // TODO: we already most of the sales' info on db... got to be a better way of doing this that doesn't decode the whole sale box again
@@ -209,9 +271,9 @@ export class SalesScanner {
 
         await writeFinishedSaleToDb(s)
 
-        removeInactive.push(boxId)
+        removeInactive.push(boxId.box_id)
       } else {
-        logger.next({ message: `could not retrieve info on inactive sale with box id: ${boxId}`})
+        logger.next({ message: `could not retrieve info on inactive sale with box id: ${boxId.box_id}`})
       }
     }
   }

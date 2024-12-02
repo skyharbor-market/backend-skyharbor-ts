@@ -2,13 +2,20 @@ import { Explorer, Transaction } from "@coinbarn/ergo-ts"
 // import { friendlyToken, getMyBids, setMyBids, showStickyMsg } from "./helpers"
 import { get } from "./rest"
 import { auctionAddress, auctionAddresses, auctionTrees } from "./consts"
-import { HTTP_503_WAIT_TIME_MS } from "../consts/salesScanner"
+import * as dotenv from "dotenv"
+import path from "path"
 // import { longToCurrency } from "./serializer"
 //import logger from "../logger"
+
+const envFilePath = path.resolve(__dirname, './.env')
+dotenv.config({ path: envFilePath })
+
+const HTTP_503_WAIT_TIME_MS = Number(process.env.HTTP_503_WAIT_TIME_MS) || 60000
 
 const explorer = Explorer.mainnet;
 export const explorerApi = 'https://api.ergoplatform.com/api/v0'
 export const explorerApiV1 = 'https://api.ergoplatform.com/api/v1'
+
 
 const sleep = async (durationMs: number) => {
   return new Promise(resolve => setTimeout(resolve, durationMs));
@@ -83,6 +90,37 @@ export async function getAllUtxosByAddress(logger: any, address: string): Promis
   offset = 0
   limit = 500
   // inc. mempool
+  for (; ;) {
+    try {
+      const batch = await getUnconfirmedTxsFor(address, offset.toString(), limit.toString())
+      if (batch.length > 0) {
+        utxos = utxos.concat(batch)
+        offset += limit
+      } else {
+        break
+      }
+    } catch (err) {
+      // TODO: implement retry count
+      if (err.message === "Response status: 503") {
+        // delay retry
+        logger.next({ message: `external API call returned status 503 using address ${address} - delaying retry for ${HTTP_503_WAIT_TIME_MS}ms` })
+        await sleep(HTTP_503_WAIT_TIME_MS)
+        continue
+      } else {
+        break
+      }
+    }
+  }
+
+  return utxos
+}
+
+export async function redundancyGetUtxosMempoolOnly(logger: any, address: string): Promise<any[]> {
+  let offset = 0
+  let limit = 500
+  let utxos: any[] = []
+  // get all unconfirmed UTXOs from mempool
+
   for (; ;) {
     try {
       const batch = await getUnconfirmedTxsFor(address, offset.toString(), limit.toString())

@@ -2,14 +2,14 @@
 export class PaymentData {
 
   address: string
-  nanoErgAmount: bigint
+  nanoErgAmount: number
   inboundTxnId?: string
   outgoingTxnId?: string
   responseCode?: number
 
   constructor(
     address: string,
-    nanoErgAmount: bigint,
+    nanoErgAmount: number,
     inboundTxnId?: string,
     outgoingTxnId?: string,
     responseCode?: number

@@ -115,23 +115,11 @@ export class Sale extends SaleBox {
         tx.outputs.forEach((output: any) => {
           output.assets.forEach((asset: any) => {
             if (asset.tokenId === this.tokenId) {
-              this.buyerAddr = tx.output.address
-              this.buyerErgoTree = tx.output.ergoTree
+              this.buyerAddr = output.address
+              this.buyerErgoTree = output.ergoTree
             }
           })
         })
-
-        // for (Object obj : outputs ) {
-        //       JsonObject o = (JsonObject) obj;
-        //       JsonArray assets = o.get("assets").getAsJsonArray();
-        //   for (Object obj2: assets) {
-        //           JsonObject o2 = (JsonObject) obj2;
-        //     if (o2.get("tokenId").getAsString().equals(this.tokenId)) {
-        //       this.buyerAddr = o.get("address").getAsString();
-        //       this.buyerErgoTree = o.get("ergoTree").getAsString();
-        //     }
-        //   }
-        // }
       }
     } else {
       logger.next({ message: "Could not retrieve info on spending tx! setting sale back to inactive.." })

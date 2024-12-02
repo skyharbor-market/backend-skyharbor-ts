@@ -80,7 +80,6 @@ function onError(error: any) {
   const ssWorker = await spawn<SSWorker>(new Worker("./workers/salesScanner.ts"));
   try {
     ssWorker.values().subscribe((log: any) => {
-      //logger.info(`${log}`);
       logger.info(log);
     });
     try {

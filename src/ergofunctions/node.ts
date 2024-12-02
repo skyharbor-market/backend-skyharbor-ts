@@ -1,9 +1,17 @@
-import { NODE_BASE_URL, NODE_API_KEY } from "../consts/salesScanner"
 import { get, post } from "./rest"
+import * as dotenv from "dotenv"
+import path from "path"
 
 // in order to secure the node requests (port 9053) the following setting have been done on apache
 // prevent any connection to 9053 except from localhost
 // proxy https://transaction-builder.ergo.ga/blocks to http://localhost:9053/blocks/lastHeaders/10
+
+const envFilePath = path.resolve(__dirname, './.env')
+dotenv.config({ path: envFilePath })
+
+const NODE_BASE_URL = process.env.NODE_BASE_URL || "http://localhost:9053"
+const NODE_API_KEY = process.env.NODE_API_KEY || ""
+const NODE_WALLET_PASS = process.env.NODE_WALLET_PASS || ""
 
 async function getRequest(url: any, apiKey = '') {
     return await get(NODE_BASE_URL + url, apiKey).then(res => {
@@ -45,6 +53,86 @@ export async function getMainWalletAddress(): Promise<string | Error> {
       return addr.data[0]
   }
   return ""
+}
+
+export async function getConfirmedBalance(): Promise<number | Error> {
+  const balance = await getRequest('/wallet/balances', NODE_API_KEY)
+
+  if (balance.data.hasOwnProperty("error")) {
+    return new Error(JSON.stringify(balance.data.reason))
+  } else if (balance.data.hasOwnProperty("balance")) {
+      return Number(balance.data.balance)
+  }
+  return 0
+}
+
+export async function getUnspentUtxos(minConfirmations: number, minInclusionHeight: number): Promise<any[] | Error> {
+  const utxos = await getRequest(`/wallet/boxes/unspent?minConfirmations=${minConfirmations}&minInclusionHeight=${minInclusionHeight}`, NODE_API_KEY)
+
+  if (utxos.data.hasOwnProperty("error")) {
+    return new Error(JSON.stringify(utxos.data.reason))
+  } else if (utxos.data.length > 0) {
+      return utxos.data
+  }
+  return []
+}
+
+export async function unlockWallet(): Promise<string | Error> {
+  const body = {
+    pass: NODE_WALLET_PASS
+  }
+
+  const resp = await postRequest('/wallet/unlock', body, NODE_API_KEY)
+
+  if (resp.data.hasOwnProperty("error")) {
+    return new Error(JSON.stringify(resp.data.reason))
+  }
+  console.log(resp.data)
+  return ""
+}
+
+export async function lockWallet(): Promise<string | Error> {
+  const resp = await getRequest('/wallet/lock', NODE_API_KEY)
+
+  if (resp.data.hasOwnProperty("error")) {
+    return new Error(JSON.stringify(resp.data.reason))
+  }
+  console.log(resp.data)
+  return ""
+}
+
+export async function getBoxBinaryMempool(boxId: string): Promise<any | Error> {
+  const resp = await getRequest(`/utxo/withPool/byIdBinary/${boxId}`, NODE_API_KEY)
+
+  if (resp.data.hasOwnProperty("error")) {
+    if (resp.data.error === 404) {
+      return new Error("box id not found")
+    } else {
+      return new Error(JSON.stringify(resp.data.reason))
+    }
+  }
+
+  return resp.data
+}
+
+export async function generateTransaction(body: any): Promise<any | Error> {
+  const resp = await postRequest('/wallet/transaction/generate', body, NODE_API_KEY)
+
+  if (resp.data.hasOwnProperty("error")) {
+    return new Error(JSON.stringify(resp.data.reason))
+  }
+  console.log(resp.data)
+  return resp.data
+}
+
+export async function sendTransaction(body: any): Promise<string | Error> {
+  const resp = await postRequest('/wallet/transaction/send', body, NODE_API_KEY)
+
+  if (resp.data.hasOwnProperty("error")) {
+    return new Error(JSON.stringify(resp.data.reason))
+  }
+  console.log(resp.data)
+  return resp.data
 }
 
 export async function redundancyGetConfirmedUtxosByAddress(address: string): Promise<any[]> {
@@ -98,6 +186,7 @@ export async function redundancyGetUtxosMempoolOnly(address: string): Promise<an
       });
     if (batch.length !== 0) {
       console.log(JSON.stringify(batch))
+      // TODO: parse through output and only return utxos with address if possible
       //utxos = utxos.concat(batch)
     } else {
       return utxos
