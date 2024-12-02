@@ -31,6 +31,7 @@ import { apiKeyUser, apiKeyUserPass } from "./consts/users"
 import PgBoss from "pg-boss"
 import { deactivateSubscriptionApiKey, updateApiKeyWithSubscription, getQueuedJobs } from './api/utils/db'
 import logger from "./logger"
+import * as dotenv from "dotenv"
 
 import routesRouter from "./api/routes.route"
 import transactionRouter from "./api/transaction.route"
@@ -49,6 +50,9 @@ declare global {
   var pgboss: PgBoss
   var queuedJobs: string[]
 }
+
+const envFilePath = path.resolve(__dirname, './.env')
+dotenv.config({ path: envFilePath })
 
 function shouldCompress(req: Request, res: Response) {
   if (req.headers["x-no-compression"]) {
@@ -83,11 +87,10 @@ export function createServer(): Application {
   return app
 }
 
-const serverHOST = "localhost";
-//const serverHOST = "104.248.54.140";
+const DB_HOST_ADDR = process.env.DB_HOST_ADDR || "localhost"
 
 const sApiPool = new Pool({
-  host: serverHOST,
+  host: DB_HOST_ADDR,
   port: 5432,
   database: "skyharbor",
   user: siteUser,
@@ -99,7 +102,7 @@ const sApiPool = new Pool({
 });
 
 const ePayPool = new Pool({
-  host: serverHOST,
+  host: DB_HOST_ADDR,
   port: 5432,
   database: "ergopay",
   user: epayUser,
