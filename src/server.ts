@@ -51,7 +51,7 @@ declare global {
   var queuedJobs: string[]
 }
 
-const envFilePath = path.resolve(__dirname, './.env')
+const envFilePath = path.resolve(process.cwd(), './.env')
 dotenv.config({ path: envFilePath })
 
 function shouldCompress(req: Request, res: Response) {
@@ -124,7 +124,7 @@ if (process.env.NODE_ENV !== 'test') {
       count = jobs.length
       globalThis.queuedJobs = jobs
     }
-    logger.info(`pgboss started - found ${count} queued jobs`)
+    logger.info({ message: "pgboss started", queued_jobs: count })
   })
 
   globalThis.pgboss.work('subscription-tasks', { newJobCheckIntervalSeconds: 300 }, async (job: any) => {

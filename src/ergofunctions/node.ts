@@ -6,7 +6,7 @@ import path from "path"
 // prevent any connection to 9053 except from localhost
 // proxy https://transaction-builder.ergo.ga/blocks to http://localhost:9053/blocks/lastHeaders/10
 
-const envFilePath = path.resolve(__dirname, './.env')
+const envFilePath = path.resolve(process.cwd(), './.env')
 dotenv.config({ path: envFilePath })
 
 const NODE_BASE_URL = process.env.NODE_BASE_URL || "http://localhost:9053"

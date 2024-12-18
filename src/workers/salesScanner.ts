@@ -21,7 +21,7 @@ import { SalesAddress } from "../classes/salesAddress"
 import * as dotenv from "dotenv"
 import path from "path"
 
-const envFilePath = path.resolve(__dirname, './.env')
+const envFilePath = path.resolve(process.cwd(), './.env')
 dotenv.config({ path: envFilePath })
 
 const SCANNER_BLOCK_POLL_RATE_MS = Number(process.env.SCANNER_BLOCK_POLL_RATE_MS) || 20000
@@ -40,7 +40,7 @@ const salesScanner = {
       // loop to check if ergo node is up
       currentHeight = await getCurrentBlockHeight()
       while (currentHeight === 0) {
-        logger.next({ message: `cannot communicate with ergo node, retrying in 10 seconds - NODE_BASE_URL: ${process.env.NODE_BASE_URL}` })
+        logger.next({ message: "cannot communicate with ergo node, retrying in 10 seconds", node_endpoint: process.env.NODE_BASE_URL})
         await sleep(10000)
         currentHeight = await getCurrentBlockHeight()
       }
@@ -73,7 +73,7 @@ const salesScanner = {
         scanner.SalesAddresses.push(sa)
       })
 
-      logger.next({ message: `${salesAddrs.rows.length} active sales addresses loaded` })
+      logger.next({ message: 'active sales addresses loaded', active_sales_count: salesAddrs.rows.length })
     } catch(error) {
       throw error
     }
@@ -102,7 +102,7 @@ const salesScanner = {
         scanner.ActiveSalesUnderAllSa.push(row.box_id)
       })
 
-      logger.next({ message: `successfully added ${activeSales.rows.length} active sales from database` })
+      logger.next({ message: 'loaded active sales from database', active_sales_count: activeSales.rows.length})
     } catch(error) {
       throw error
     }
@@ -110,7 +110,7 @@ const salesScanner = {
   async processNewSales() {
     try {
       for (const sa of scanner.SalesAddresses) {
-        logger.next({ message: `processing sales address ${sa.address}` })
+        logger.next({ message: "processing sales address", sales_address: `${sa.address}` })
         const utxosForSa = await getAllUtxosByAddress(logger, sa.address)
         await scanner.processUtxosUnderSa(logger, utxosForSa, sa)
       }
@@ -132,7 +132,7 @@ const salesScanner = {
       try {
         let newBlock = await scanner.checkForNewBlock(currentHeight)
         if (newBlock) {
-          logger.next({ message: `new block found at height: ${newBlock}` })
+          logger.next({ message: 'new block found', block_height: newBlock })
 
           for (const sa of scanner.SalesAddresses) {
             //TODO: need method to get utxo's under sa and store in local storage, so below 2 methods don't have to do it twice. implement below too.
@@ -156,7 +156,7 @@ const salesScanner = {
           try {
               await checkBalancePayTeamWithInputLimit(scanner.NODE_MAIN_WALLET_ADDRESS)
           } catch (error) {
-              logger.next({ message: "Error occured whilst trying to pay team!", error: error})
+            logger.next({ message: "Error occured whilst trying to pay team!", level: "error", error: error})
           }
         } else {
           // should be once every 20s if blockPollRate is 1 seconds, once every 20s is blockPollrate is 10s.

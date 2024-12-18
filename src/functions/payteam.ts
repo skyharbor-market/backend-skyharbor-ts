@@ -13,7 +13,7 @@ import { paySplit } from "../consts/salesScanner"
 import * as dotenv from "dotenv"
 import path from "path"
 
-const envFilePath = path.resolve(__dirname, './.env')
+const envFilePath = path.resolve(process.cwd(), './.env')
 dotenv.config({ path: envFilePath })
 
 const SCANNER_DECIMAL_PAY_THRESHOLD = Number(process.env.SCANNER_DECIMAL_PAY_THRESHOLD) || 10
@@ -76,7 +76,7 @@ change 4 (remainder plus fee)
 */
 async function payTeam(origPayAmount: number, inputs: string[], nodeMainWalletAddr: string) {
 
-  logger.info({ message: `processing team payment txs with total: ${origPayAmount} ERG...` })
+  logger.info({ message: "processing team payment txs", erg_total: origPayAmount })
   let payAmount: number = origPayAmount
 
   // take some erg for fee payment
@@ -91,12 +91,12 @@ async function payTeam(origPayAmount: number, inputs: string[], nodeMainWalletAd
   const requestArray: any[] = []
   const body: { [k: string]: any } = {}
 
-  logger.info({ message: `paying team and maintenance for: ${payAmount} ERG, after fee and saving-for-future-tx's`})
+  logger.info({ message: "paying team and maintenance amount after fee and saving-for-future-tx's", erg_pay_amount: payAmount})
 
   const maintPay: number = (SCANNER_MAINT_PERCENTAGE / 100) * payAmount
   const maintPayment = new PaymentData(SCANNER_MAINT_ADDRESS, maintPay)
 
-  logger.info({ message: `paying team wallet ${SCANNER_MAINT_ADDRESS} ${maintPay} ERGs` })
+  logger.info({ message:"paying team wallet", wallet_address: SCANNER_MAINT_ADDRESS, erg_maint_amount: maintPay })
   let totalToSend: number = maintPay
 
   awaitingPayments.push(maintPayment)
@@ -111,7 +111,7 @@ async function payTeam(origPayAmount: number, inputs: string[], nodeMainWalletAd
     // Math.floor will discard any fractional part, effectively rounding down
     const indivPay = Math.floor((percentage / 100) * teamPayAmount)
 
-    logger.info({ message: `paying team member address: ${walletAddr} the percentage: ${percentage} - ${indivPay} ERGs` })
+    logger.info({ message: "paying team member", wallet_address: walletAddr, percentage: percentage, erg_amount: indivPay })
 
     totalToSend = totalToSend + indivPay
     const teamPayment = new PaymentData(walletAddr, indivPay)
@@ -120,7 +120,7 @@ async function payTeam(origPayAmount: number, inputs: string[], nodeMainWalletAd
     awaitingPayments.push(teamPayment)
   }
 
-  logger.info({ message: `original team and maintenance pay amount was: ${payAmount} total after division is: ${totalToSend}`})
+  logger.info({ message: `original team and maintenance pay amount`, erg_total_amount: payAmount, erg_total_sent: totalToSend })
   const remainder: number = payAmount - totalToSend
 
   // need to manually create a change and fee box.
@@ -162,27 +162,24 @@ async function payTeam(origPayAmount: number, inputs: string[], nodeMainWalletAd
   // team accumulated pay DOES NOT need be cleared down as it is properly scoped to this method.
   // REMOVED the clear down of the array, AS THE BATCHED TOKEN / PAYMENTS need to be retained between loops.
   // CLEARED DOWN HERE as the node request is recorded, so those tokens / payments should be considered sent even if sending issue.
-  logger.info({ message: `ORIGINAL PAY AMOUNT: ${origPayAmount}` })
+  logger.info({ message: "ORIGINAL PAY AMOUNT", erg_orig_amount: origPayAmount })
   let finalTotal = feeAmount
 
   for (const p of awaitingPayments) {
     finalTotal = finalTotal + p.nanoErgAmount
   }
 
-  logger.info({ message: `accumulated PAY AMOUNT: ${finalTotal}`})
-  //print generated tx
-  logger.info({ message: `gen resp code: ${gen}`})
+  logger.info({ message: "accumulated PAY AMOUNT", erg_final_total: finalTotal, generate_tx_resp_code: gen })
 
   if (gen === 200) {
-    logger.info({ message: "sending transaction..."})
-    logger.info({ message: `${body}`})
+    logger.info({ message: "sending transaction...", body: body })
 
-    const txResp = await sendTransaction(body)
-    if (typeof txResp === "string") {
-      logger.info({ message: `Team pay tx: ${txResp} was successful!`})
-    } else {
-      logger.error({ message: `Send tx failed!`})
-    }
+    // const txResp = await sendTransaction(body)
+    // if (typeof txResp === "string") {
+    //   logger.info({ message: `Team pay tx: ${txResp} was successful!`})
+    // } else {
+    //   logger.error({ message: `Send tx failed!`})
+    // }
 
   }
 }
@@ -219,7 +216,7 @@ export async function checkBalancePayTeamWithInputLimit(nodeMainWalletAddr: stri
                   boxIds.push(box.boxId)
                   balance = balance + Number(box.value)
                 } else {
-                  logger.info({ message: `box with id: ${box.boxId} contains ${box.assets.length} assets! cannot send` })
+                  logger.info({ message: "box contains assets! cannot send", box_id: box.boxId, asset_count: box.assets.length })
                 }
               } else {
                 logger.info({ message: "assets property is missing from box" })
@@ -230,7 +227,11 @@ export async function checkBalancePayTeamWithInputLimit(nodeMainWalletAddr: stri
           if (balance > MIN_NERG_TEAM_PAY_TOTAL) {
             payTeam(balance, boxIds, nodeMainWalletAddr)
           } else {
-            logger.info({ message: `The ${boxIds.length} utxo's remaining have balance: ${balance} which is lower than minimum of: ${MIN_NERG_TEAM_PAY_TOTAL} not sending..` })
+            logger.info({
+              message: "The utxos remaining have balance which is lower than minimum not sending..",
+              utxos_length: boxIds.length,
+              erg_balance: balance,
+              erg_min_team_pay_total: MIN_NERG_TEAM_PAY_TOTAL })
           }
 
           unspentUtxos = unspentUtxos.filter((utxo) => {
@@ -249,7 +250,10 @@ export async function checkBalancePayTeamWithInputLimit(nodeMainWalletAddr: stri
         logger.error({ message: "Could not successfully get utxo's from node!", error: unspentUtxos.message })
       }
     } else {
-      logger.info({ message: `balance of '${walletBalance}' is below decimal pay threshold of '${SCANNER_DECIMAL_PAY_THRESHOLD}', not sending funds`})
+      logger.info({
+        message: "balance is below decimal pay threshold, not sending funds",
+        team_wallet_balance: walletBalance,
+        scanner_decimal_pay_threshold: SCANNER_DECIMAL_PAY_THRESHOLD })
     }
   } else {
     logger.error({ message: "Could not successfully get balance from node!", error: walletBalance.message })

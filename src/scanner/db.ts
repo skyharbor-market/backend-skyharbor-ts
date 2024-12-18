@@ -290,7 +290,7 @@ export async function getOrCreateCollectionsForMintAddress(token: Token): Promis
 }
 
 export async function addOrReactivateSale(s: Sale): Promise<void> {
-  logger.info(`Adding or updating sale with box id: ${s.boxId}`)
+  logger.info({ message: 'Adding or updating sale', box_id: s.boxId })
 
   const dbQuery: QueryConfig<any[]> = { text: "", values: [] }
 
@@ -337,20 +337,20 @@ export async function addTokenToDb(token: Token): Promise<Error | undefined> {
   const dbQuery: QueryConfig<any[]> = {
     text: `insert into tokens values(default,$1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)`,
     values: [
-      `${token.name}`,
-      `${token.collectionSysName}`,
-      `${token.tokenId}`,
-      `${token.tokenTypeStr}`,
-      `${token.description}`,
-      `${token.artUrl}`,
-      `${token.ipfsArtHash}`,
-      `${token.audio_url}`,
-      `${token.emmissionCount}`,
-      `${token.royaltyValueStr}`,
-      `${token.royaltyAddress}`,
-      `${token.royaltyErgoTree}`,
-      `${token.artHash}`,
-      `${token.mintAddress}`
+      `${token.name}`,               // text
+      `${token.collectionSysName}`,  // text
+      `${token.tokenId}`,            // text, unique
+      `${token.tokenTypeStr}`,       // text
+      `${token.description}`,        // text, nullable
+      `${token.artUrl}`,             // text
+      `${token.ipfsArtHash}`,        // text, nullable
+      `${token.audio_url}`,          // text, nullable
+      `${token.emmissionCount}`,     // bigint
+      `${token.royaltyValue}`,       // integer, nullable
+      `${token.royaltyAddress}`,     // text, nullable
+      `${token.royaltyErgoTree}`,    // text, nullable
+      `${token.artHash}`,            // text
+      `${token.mintAddress}`         // text, nullable
     ]
   }
 
@@ -370,7 +370,7 @@ export async function addTokenToDb(token: Token): Promise<Error | undefined> {
 }
 
 export async function writeFinishedSaleToDb(s: Sale): Promise<void> {
-  logger.info(`marking sale as ${s.status}: ${s.boxId}`)
+  logger.info({ message: 'marking sale in db', sale_status: s.status, box_id: s.boxId })
 
   const dbQuery: QueryConfig<any[]> = {
     text: "update public.sales set status = $1, buyer_address = $2, buyer_ergotree = $3, spent_tx = $4, box_json = $5 where box_id = $6",
@@ -421,7 +421,7 @@ export async function batchMarkInactiveSalesBySaId(inactiveSales: string[], saId
 }
 
 export async function deactivateSalesNotOnActiveAddresses(salesAddresses: SalesAddress[]): Promise<void> {
-  logger.info("marking active sales on inactive addresses as 'salesAddressInactive'")
+  logger.info({ message: "marking active sales on inactive addresses as 'salesAddressInactive'" })
 
   let dbQuery: QueryConfig<any[]>
 
@@ -453,7 +453,7 @@ export async function deactivateSalesNotOnActiveAddresses(salesAddresses: SalesA
 }
 
 export async function reactivateSalesOnActiveAddresses(salesAddresses: SalesAddress[]): Promise<void> {
-  logger.info("marking 'salesAddressInactive' sales on active addresses as 'active'")
+  logger.info({ message: "marking 'salesAddressInactive' sales on active addresses as 'active'" })
 
   let dbQuery: QueryConfig<any[]>
 
@@ -487,7 +487,7 @@ export async function reactivateSalesOnActiveAddresses(salesAddresses: SalesAddr
 export async function insertNftPostMint(filename: string, nftName: string, imageFileName: string, nftMetadata: string,
   mintToAddress: string, mintWalletAddress: string, ipfsLink: string, mintIndex: number, pinataRc: string,
   nodeRequestStr: string, nodeRespCodeStr: string, tokenId: string, table: string, mintTx: string): Promise<void> {
-  logger.info(`recording status of mint with tx id: ${nodeRespCodeStr}`)
+  logger.info({ message: "recording status of mint", tx_id: nodeRespCodeStr })
 
   const dbQuery: QueryConfig<any[]> = {
     text: `INSERT INTO public.$1 (filename, nft_name, image_name, metadata, mint_to_address, current_address, minted_on, ipfs_url,

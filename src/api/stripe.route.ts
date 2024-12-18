@@ -15,7 +15,7 @@ import path from "path"
 import Stripe from "stripe"
 import logger from "../logger"
 
-const envFilePath = path.resolve(__dirname, './.env')
+const envFilePath = path.resolve(process.cwd(), './.env')
 dotenv.config({ path: envFilePath })
 const router = express.Router()
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {

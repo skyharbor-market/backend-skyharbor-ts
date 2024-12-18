@@ -16,7 +16,7 @@ import {
 import { boxByBoxId } from '../ergofunctions/explorer'
 import { getCurrentBlockHeight,} from "../ergofunctions/node"
 
-const envFilePath = path.resolve(__dirname, './.env')
+const envFilePath = path.resolve(process.cwd(), './.env')
 dotenv.config({ path: envFilePath })
 
 type thrower = (reason: string) => Error
@@ -96,44 +96,40 @@ export class SalesScanner {
   }
 
   public async processUtxosUnderSa(logger: any, utxos: any[], salesAddr: SalesAddress) {
-    logger.next({ message: `processing ${utxos.length} utxo boxes for sales address ${salesAddr.address}` })
+    logger.next({ message: "processing utxo boxes for sales address", utxo_count: utxos.length, sales_address: salesAddr.address })
     for (const utxo of utxos) {
       // if new UTXO is not on activeSales list
       if (!this.ActiveSalesUnderAllSa.includes(utxo.boxId) && !this.OmittedSales.includes(utxo.boxId)) {
-        logger.next({ message: `box with id: ${utxo.boxId} is new, processing...` })
+        logger.next({ message: "box id is new, processing...", box_id: utxo.boxId })
         try {
-            const sb: SaleBox = SaleBox.decodeBox(logger, utxo)
-            sb.salesAddress = salesAddr
-            logger.next({ message: `box id ${utxo.boxId} decoded` })
-          // REMOVE
-          if (utxo.boxId === "247e0772e804cee71c0870538acc22c442e6f0fa888b4d5cedc216721da783f0") {
+          const sb: SaleBox = SaleBox.decodeBox(logger, utxo)
+          sb.salesAddress = salesAddr
+          logger.next({ message: "box id decoded", box_id: utxo.boxId })
 
+          if (sb.validSale && sb.tokenId !== undefined) {
+            // if token does not exist on db yet,
+            // get token info and add token to db
+            const t = await SalesScanner.processToken(logger, sb.tokenId)
+            logger.next({ message: "token id processed", token_id: sb.tokenId })
 
-            if (sb.validSale && sb.tokenId !== undefined) {
-              // if token does not exist on db yet,
-              // get token info and add token to db
-              const t = await SalesScanner.processToken(logger, sb.tokenId)
-              logger.next({ message: `token id ${sb.tokenId} processed` })
-
-              if (t.valid) {
-                const sale = await SalesScanner.createValidSale(logger, sb, t)
-                logger.next({ message: `sale details with boxid ${sale.boxId} created` })
-                // add to db under active sales
-                await addOrReactivateSale(sale)
-                logger.next({ message: `sale with boxid ${sale.boxId} added to db` })
-                // add to activeSales list
-                this.ActiveSalesUnderAllSa.push(sale.boxId!)
-              } else {
-                logger.next({ message: `token with id: ${t.tokenId} was invalid!` })
-                this.OmittedSales.push(utxo.boxId)
-              }
+            if (t.valid) {
+              const sale = await SalesScanner.createValidSale(logger, sb, t)
+              logger.next({ message: "sale details with boxid created", box_id: sale.boxId })
+              // add to db under active sales
+              await addOrReactivateSale(sale)
+              logger.next({ message: "sale with boxid added to db", box_id: sale.boxId })
+              // add to activeSales list
+              this.ActiveSalesUnderAllSa.push(sale.boxId!)
             } else {
-              logger.next({ message: `box with id:${utxo.boxId} was not a valid sale box!` })
-              this.OmittedSales.push(utxo.boxId);
+              logger.next({ message: "token was invalid!", token_id: t.tokenId })
+              this.OmittedSales.push(utxo.boxId)
             }
+          } else {
+            logger.next({ message: "box was not a valid sale box!", box_id: utxo.boxId })
+            this.OmittedSales.push(utxo.boxId);
           }
         } catch (error) {
-          logger.next({ message: `failed to decode utxo box - ${error}` })
+          logger.next({ message: `failed to decode utxo box - ${error}`, box_id: utxo.boxId })
         }
       }
     }
@@ -150,12 +146,12 @@ export class SalesScanner {
       await token.getInfoOnSelf(logger)
 
       if (token.valid) {
-        logger.next({ message: `adding valid token ${tokenId} to db...` })
+        logger.next({ message: "adding valid token to db...", token_id: tokenId })
         const ret = await addTokenToDb(token)
         if (typeof ret !== "undefined") {
-          logger.next({ message: `failed to add token ${tokenId} to db`, error: ret.message })
+          logger.next({ message: "failed to add token to db", level: "error", error: ret.message, token_id: tokenId })
         } else {
-          logger.next({ message: `token with id: ${tokenId} added to db!` })
+          logger.next({ message: "token added to db!", token_id: tokenId })
         }
       } else {
         token.logInfoOnSelf(logger)
@@ -215,7 +211,11 @@ export class SalesScanner {
         dbActiveSalesForSa.push(row.box_id)
       })
     } else {
-      logger.next({ message: `no sales from db are inactive on sales address: ${salesAddr.currency} version: ${salesAddr.version} id: ${salesAddr.id}` })
+      logger.next({
+        message: "no sales from db are inactive on sales address",
+        sales_address_currency: salesAddr.currency,
+        sales_address_version: salesAddr.version,
+        sales_address_id: salesAddr.id })
       return
     }
 
@@ -224,7 +224,7 @@ export class SalesScanner {
     dbActiveSalesForSa.forEach((sale) => {
       // if item in activeSales is NOT in unspent UTXO's
       if (!activeSalesUnderSa.includes(sale)) {
-        logger.next({ message: `sale with box id: ${sale} is inactive!` })
+        logger.next({ message: "sale is inactive!", box_id: sale })
         inactiveSales.push(sale)
       }
     })
@@ -273,7 +273,7 @@ export class SalesScanner {
 
         removeInactive.push(boxId.box_id)
       } else {
-        logger.next({ message: `could not retrieve info on inactive sale with box id: ${boxId.box_id}`})
+        logger.next({ message: "could not retrieve info on inactive sale with box id", box_id: boxId.box_id})
       }
     }
   }

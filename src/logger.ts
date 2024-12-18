@@ -1,8 +1,16 @@
 import winston from 'winston'
 import os from 'os'
+import * as dotenv from "dotenv"
+import path from "path"
+import LokiTransport from 'winston-loki'
+
+const envFilePath = path.resolve(process.cwd(), './.env')
+dotenv.config({ path: envFilePath })
 
 const hostname = os.hostname()
-const env = process.env.NODE_ENV || 'development'
+const ENV = process.env.NODE_ENV || 'development'
+const LOKI_ENDPOINT = process.env.LOKI_ENDPOINT || 'http://127.0.0.1:3100'
+const LOKI_ENABLED = Boolean(process.env.LOKI_ENABLED) || false
 
 const levels = {
   fatal: 0,
@@ -14,7 +22,7 @@ const levels = {
 }
 
 const level = () => {
-  const isDevelopment = env === 'development' || env === 'local'
+  const isDevelopment = ENV === 'development' || ENV === 'local'
   return isDevelopment ? 'debug' : 'info'
 }
 
@@ -31,7 +39,7 @@ const transports = [
 const labels = {
   hostname: `${hostname}`,
   app: "skyharbor-backend",
-  env: env,
+  env: ENV,
 }
 
 const logger = winston.createLogger({
@@ -41,5 +49,17 @@ const logger = winston.createLogger({
   defaultMeta: labels,
   transports,
 })
+
+if (LOKI_ENABLED) {
+  logger.add(new LokiTransport({
+    host: LOKI_ENDPOINT,
+    json: true,
+    labels: labels,
+    format: format,
+    timeout: 30000,
+    clearOnError: true,
+    onConnectionError: (err) => console.error(err)
+  }))
+}
 
 export default logger

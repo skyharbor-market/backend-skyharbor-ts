@@ -25,7 +25,7 @@ export class Token {
   tokenTypeStr: string = ""
   royalties: boolean = false
   royaltyAddress: string = "NULL"
-  royaltyValueStr: string = "NULL"
+  royaltyValue: number = 0
   royaltyErgoTree: string = "NULL"
   artHash: string = ""
   mintAddress: string = ""
@@ -62,13 +62,13 @@ export class Token {
       token_type: this.tokenTypeStr,
       royalty_addr: this.royaltyAddress,
       roy_ergotree: this.royaltyErgoTree,
-      royalty_int: this.royaltyValueStr,
+      royalty_int: this.royaltyValue,
       exists: this.existsOnDb,
       valid: this.valid,
       EIP_type: this.eipType,
     }
 
-    logger.next({ message: msg })
+    logger.next(Object.assign({}, msg))
   }
 
   public async getInfoOnSelf(logger: any): Promise<void> {
@@ -87,7 +87,6 @@ export class Token {
 
       const boxInfo = await boxByBoxId(this.creationBox)
       logger.next(Object.assign({}, {message: "boxinfo"}, boxInfo))
-      // logger.next({ message: `boxInfo - ${JSON.stringify(boxInfo)}` })
 
       if (Object.keys(boxInfo).length > 0 || boxInfo.length > 0) {
 
@@ -106,7 +105,7 @@ export class Token {
           this.decodeIpfsArtUrl(logger)
         } else if (this.r7TokenType === "0102") {
           this.tokenTypeStr = "audio"
-          logger.next({ message: "Token is audio! can't process.." })
+          logger.next({ message: "Token is audio! can't process..", R7: this.r7TokenType })
           return
         } else if (this.r7TokenType === "0103") {
           this.tokenTypeStr = "video"
@@ -115,10 +114,10 @@ export class Token {
           this.decodeIpfsArtUrl(logger)
         } else if (this.r7TokenType === "0201") {
           this.tokenTypeStr = "utility"
-          logger.next({ message: "Token is utility! can't process.." })
+          logger.next({ message: "Token is utility! can't process..", R7: this.r7TokenType })
           return
         } else {
-          logger.next({ message: "could not detect token type! token type was: " + this.r7TokenType })
+          logger.next({ message: "could not detect token type!", R7: this.r7TokenType })
           return
         }
 
@@ -129,7 +128,7 @@ export class Token {
           logger.next(Object.assign({}, { message: "preMintBox" }, preMintBox))
 
           if (Object.keys(preMintBox.additionalRegisters).length > 0) {
-            logger.next({ message: `getting royalty info for token id ${this.tokenId}` })
+            logger.next({ message: "getting royalty info for token id", token_id: this.tokenId })
             let royaltyValueInt: number = 0
             // try and get R4 for royalty value
             try {
@@ -137,21 +136,24 @@ export class Token {
               // check for royalty ergo tree in register R5
               if (!preMintBox.additionalRegisters.hasOwnProperty("R5")) {
                 logger.next({
-                  message: `register R5 is missing for box id  ${this.creationBox}`,
-                  additionalRegisters: preMintBox.additionalRegisters
+                  message: "register R5 is missing for box id",
+                  box_id: this.creationBox,
+                  additional_registers: preMintBox.additionalRegisters
                 })
                 return
               }
               // check for valid royalty amount, between 0 and 200 inclusive.
               if (royaltyValueInt >= 0 && royaltyValueInt <= 200) {
                 this.royalties = true
-                this.royaltyValueStr = royaltyValueInt.toString()
+                //this.royaltyValueStr = royaltyValueInt.toString()
+                this.royaltyValue = royaltyValueInt
                 this.royaltyErgoTree = preMintBox.additionalRegisters.R5.renderedValue
                 try {
                   this.royaltyAddress = await ergoTreeToAddress(this.royaltyErgoTree)
                 } catch (e) {
                   logger.next({
-                    message: `failed to get box id ${this.creationBox} R5 royalty address - ${e}`,
+                    message: `failed to get box id R5 royalty address - ${e}`,
+                    box_id: this.creationBox,
                     R4: preMintBox.additionalRegisters.R4,
                     R5: preMintBox.additionalRegisters.R5
                   })
@@ -160,7 +162,8 @@ export class Token {
               }
             } catch (e) {
               logger.next({
-                message: `failed to get box id ${this.creationBox} R4 royalty value - ${e}`,
+                message: `failed to get box id R4 royalty value - ${e}`,
+                box_id: this.creationBox,
                 R4: preMintBox.additionalRegisters.R4,
                 R5: preMintBox.additionalRegisters.R5
               })
@@ -174,7 +177,7 @@ export class Token {
 
           if (issuingBox !== null) {
             this.mintAddress = issuingBox.address
-            logger.next({ message: `mint address: ${this.mintAddress}` })
+            logger.next({ message: "found mint address", mint_address: this.mintAddress })
 
             //get info on collection from database
             await this.getCollectionName(logger)
@@ -183,7 +186,7 @@ export class Token {
               //all done, return valid
               this.valid = true
             } else {
-              logger.next({ message: `Could not find a valid collection for token with id: ${this.tokenId}` })
+              logger.next({ message: "Could not find a valid collection for token", token_id: this.tokenId })
               return
             }
           }
@@ -201,7 +204,10 @@ export class Token {
     } else if (this.artUrl.includes(ipfsGate)) {
       this.ipfsArtHash = this.artUrl.substring(this.artUrl.indexOf(ipfsGate) + ipfsGate.length)
     } else {
-      logger.next({ message: `could not find ipfs tag for NFT: '${this.name}' with token ID: ${this.tokenId}, not an IPFS image?` })
+      logger.next({
+        message: "could not find ipfs tag for NFT with token ID, not an IPFS image",
+        token_id: this.tokenId,
+        nft_name: this.name })
       this.ipfsArtHash = "NULL"
     }
   }
@@ -209,7 +215,10 @@ export class Token {
   private async getCollectionName(logger: any): Promise<void> {
 
     const colls: string[] | undefined = await getOrCreateCollectionsForMintAddress(this)
-    logger.next({ message: "getOrCreateCollectionsForMintAddress()", collections: typeof colls === 'undefined' ? "undefined" : colls.toString() })
+    logger.next({
+      message: "called get or create collections for mint address",
+      mint_address: this.mintAddress,
+      collections: typeof colls === 'undefined' ? "undefined" : colls.toString() })
 
     if (typeof colls !== 'undefined') {
       if (colls.length === 1) {
@@ -245,7 +254,7 @@ export class Token {
           addr = new Address(deepPreMintBox.address)
         } else {
           success = false
-          logger.next({ message: `could not successfully find info on box: ${input0BoxId}` })
+          logger.next({ message: "could not successfully find info on box", box_id: input0BoxId })
         }
 
       } else {

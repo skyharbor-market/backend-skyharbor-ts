@@ -7,7 +7,7 @@ import path from "path"
 // import { longToCurrency } from "./serializer"
 //import logger from "../logger"
 
-const envFilePath = path.resolve(__dirname, './.env')
+const envFilePath = path.resolve(process.cwd(), './.env')
 dotenv.config({ path: envFilePath })
 
 const HTTP_503_WAIT_TIME_MS = Number(process.env.HTTP_503_WAIT_TIME_MS) || 60000
@@ -77,7 +77,7 @@ export async function getAllUtxosByAddress(logger: any, address: string): Promis
       // TODO: implement retry count
       if (err.message === "Response status: 503") {
         // delay retry
-        logger.next({ message: `external API call returned status 503 using address ${address} - delaying retry for ${HTTP_503_WAIT_TIME_MS}ms` })
+        logger.next({ message: `external API call returned status 503 delaying retry for ${HTTP_503_WAIT_TIME_MS}ms`, explorer_endpoint: address })
         await sleep(HTTP_503_WAIT_TIME_MS)
         continue
       } else {
@@ -103,7 +103,7 @@ export async function getAllUtxosByAddress(logger: any, address: string): Promis
       // TODO: implement retry count
       if (err.message === "Response status: 503") {
         // delay retry
-        logger.next({ message: `external API call returned status 503 using address ${address} - delaying retry for ${HTTP_503_WAIT_TIME_MS}ms` })
+        logger.next({ message: `external API call returned status 503 delaying retry for ${HTTP_503_WAIT_TIME_MS}ms`, explorer_endpoint: address })
         await sleep(HTTP_503_WAIT_TIME_MS)
         continue
       } else {
@@ -134,7 +134,7 @@ export async function redundancyGetUtxosMempoolOnly(logger: any, address: string
       // TODO: implement retry count
       if (err.message === "Response status: 503") {
         // delay retry
-        logger.next({ message: `external API call returned status 503 using address ${address} - delaying retry for ${HTTP_503_WAIT_TIME_MS}ms` })
+        logger.next({ message: `external API call returned status 503 delaying retry for ${HTTP_503_WAIT_TIME_MS}ms`, explorer_endpoint: address })
         await sleep(HTTP_503_WAIT_TIME_MS)
         continue
       } else {

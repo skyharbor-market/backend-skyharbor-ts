@@ -78,7 +78,7 @@ export class Sale extends SaleBox {
   }
 
   public async updateSaleAfterSpend(logger: any): Promise<void> {
-    logger.next({ message: `box ${this.boxId} is spent! decoding spending result, sale or cancel...` })
+    logger.next({ message: "box is spent! decoding spending result, sale or cancel...", box_id: this.boxId })
 
     //get details on the tx from the API
     const tx = await txById(this.spentTx)
