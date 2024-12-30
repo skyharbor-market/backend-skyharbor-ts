@@ -155,7 +155,7 @@ router.post("/webhook", async (req: Request, res: Response) => {
     if (!subscription.cancel_at_period_end && typeof data.previous_attributes !== "undefined") {
       const prevAttr: Stripe.Subscription = data.previous_attributes as Stripe.Subscription
       const currPlan: Stripe.Plan = subscription.items.data[0].plan as Stripe.Plan
-      console.log("currPlan", currPlan)
+
       if (prevAttr.cancel_at_period_end) {
         // remove scheduled pg task to disable api key at the end of that billing cycle
         removeSubscriptionTask(subscription.id)

@@ -11,6 +11,9 @@ const hostname = os.hostname()
 const ENV = process.env.NODE_ENV || 'development'
 const LOKI_ENDPOINT = process.env.LOKI_ENDPOINT || 'http://127.0.0.1:3100'
 const LOKI_ENABLED = Boolean(process.env.LOKI_ENABLED) || false
+const LOKI_USERNAME = process.env.LOKI_USERNAME || ''
+const LOKI_PASSWORD = process.env.LOKI_PASSWORD || ''
+const LOKI_API_TOKEN = process.env.LOKI_API_TOKEN || ''
 
 const levels = {
   fatal: 0,
@@ -54,6 +57,8 @@ if (LOKI_ENABLED) {
   logger.add(new LokiTransport({
     host: LOKI_ENDPOINT,
     json: true,
+    headers: LOKI_API_TOKEN !== '' ? { 'Authorization': `Bearer ${LOKI_API_TOKEN}` } : undefined,
+    basicAuth: (LOKI_USERNAME !== '' && LOKI_PASSWORD !== '') ? `${LOKI_USERNAME}:${LOKI_PASSWORD}` : undefined,
     labels: labels,
     format: format,
     timeout: 30000,

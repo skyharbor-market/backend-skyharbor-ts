@@ -71,7 +71,7 @@ export class Sale extends SaleBox {
   public addRoyaltyInfo(t: Token): void {
     if (t.royalties) {
       if (typeof this.nergSaleValue !== 'undefined') {
-        this.nergRoyaltyValue = this.nergSaleValue * (BigInt(t.royaltyValueStr) / BigInt(1000))
+        this.nergRoyaltyValue = this.nergSaleValue * (BigInt(t.royaltyValue) / BigInt(1000))
         this.royaltyErgoTree = t.royaltyErgoTree
       }
     }

@@ -4,7 +4,6 @@ src/consts/users.ts
 #configs
 src/consts/prodConfig.ts
 src/consts/testConfig.ts
-src/consts/salesScanner.ts
 
 # API BACKUP
 **/api-backup/

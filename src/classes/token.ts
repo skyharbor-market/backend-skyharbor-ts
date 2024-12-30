@@ -3,7 +3,6 @@ import { ergoTreeToAddress } from '../ergofunctions/serializer'
 import { Address, AddressKind } from '@coinbarn/ergo-ts/dist/models/address'
 import { findTokenCollection } from '../functions/collectionCorrection'
 import { getOrCreateCollectionsForMintAddress } from '../scanner/db'
-//import logger from "../logger"
 
 export class Token {
 
@@ -27,6 +26,7 @@ export class Token {
   royaltyAddress: string = "NULL"
   royaltyValue: number = 0
   royaltyErgoTree: string = "NULL"
+  royaltiesV2Array: any[] = []
   artHash: string = ""
   mintAddress: string = ""
   collectionSysName: string = "null"
@@ -43,7 +43,7 @@ export class Token {
 
   public logInfoOnSelf(logger: any) {
     const msg = {
-      message: `token was invalid!`,
+      message: "token was invalid!",
       mint_address: this.mintAddress,
       name: this.name,
       desc: this.description,
@@ -60,9 +60,10 @@ export class Token {
       existing: this.emmissionCount,
       token_id: this.tokenId,
       token_type: this.tokenTypeStr,
-      royalty_addr: this.royaltyAddress,
+      roy_addr: this.royaltyAddress,
       roy_ergotree: this.royaltyErgoTree,
-      royalty_int: this.royaltyValue,
+      roy_v2_arr: this.royaltiesV2Array,
+      roy_int: this.royaltyValue,
       exists: this.existsOnDb,
       valid: this.valid,
       EIP_type: this.eipType,
@@ -91,8 +92,6 @@ export class Token {
       if (Object.keys(boxInfo).length > 0 || boxInfo.length > 0) {
 
         //TODO: get more info on diff types of token via registers, have to decode using decodeString in utils
-        // need to do audio and video NFT's.
-        //audio have a double coll[byte],coll[byte] data type for the audio,coverimage respectively - CHECK THE EIP
 
         // get token type, move art links based on typing.
         const regs = boxInfo.additionalRegisters
@@ -104,9 +103,22 @@ export class Token {
           this.artHash = regs.R8.renderedValue
           this.decodeIpfsArtUrl(logger)
         } else if (this.r7TokenType === "0102") {
+          // EIP SPEC - https://github.com/ergoplatform/eips/blob/master/eip-0004.md#ergo-asset-types
+          // audio NFTs can either be
+          //   R9 - Coll[SByte] - (audio)ipfs://bafybeibd54zkapzgvetwcr...
+          //
+          //   R9 - (Coll[SByte], Coll[SByte]) - (audio)[ipfs://bafybeigeqb6srly...],(image cover)[ipfs://bafybeicduvhleu...]
           this.tokenTypeStr = "audio"
-          logger.next({ message: "Token is audio! can't process..", R7: this.r7TokenType })
-          return
+          if (regs.R9.sigmaType === "Coll[SByte]") {
+            this.audio_url = Buffer.from(regs.R9.renderedValue, 'hex').toString()
+          } else if (regs.R9.sigmaType === "(Coll[SByte], Coll[SByte])") {
+            // Remove outer brackets and split into array of audio and image cover
+            const audioLinks = regs.R9.renderedValue.slice(1, -1).split(',')
+            this.audio_url = Buffer.from(audioLinks[0], 'hex').toString()
+            this.artUrl = Buffer.from(audioLinks[1], 'hex').toString()
+          }
+          this.artHash = regs.R8.renderedValue
+          this.decodeIpfsArtUrl(logger)
         } else if (this.r7TokenType === "0103") {
           this.tokenTypeStr = "video"
           this.artUrl = Buffer.from(regs.R9.renderedValue, 'hex').toString()
@@ -122,47 +134,104 @@ export class Token {
         }
 
         // get royalty info
-        // Is this call correct?
         const preMintBox = await boxByBoxId(this.tokenId)
         if (Object.keys(preMintBox).length > 0 || preMintBox.length > 0) {
+          // boxId == token_id
           logger.next(Object.assign({}, { message: "preMintBox" }, preMintBox))
 
           if (Object.keys(preMintBox.additionalRegisters).length > 0) {
-            logger.next({ message: "getting royalty info for token id", token_id: this.tokenId })
-            let royaltyValueInt: number = 0
-            // try and get R4 for royalty value
-            try {
-              royaltyValueInt = Number(preMintBox.additionalRegisters.R4.renderedValue)
-              // check for royalty ergo tree in register R5
-              if (!preMintBox.additionalRegisters.hasOwnProperty("R5")) {
+            // check for R4 and R5 registers
+            const regs: string[] = ["R4", "R5"]
+            regs.forEach((r) => {
+              if (!preMintBox.additionalRegisters.hasOwnProperty(r)) {
                 logger.next({
-                  message: "register R5 is missing for box id",
+                  message: `register ${r} is missing for box id`,
                   box_id: this.creationBox,
                   additional_registers: preMintBox.additionalRegisters
                 })
                 return
               }
-              // check for valid royalty amount, between 0 and 200 inclusive.
-              if (royaltyValueInt >= 0 && royaltyValueInt <= 200) {
-                this.royalties = true
-                //this.royaltyValueStr = royaltyValueInt.toString()
-                this.royaltyValue = royaltyValueInt
-                this.royaltyErgoTree = preMintBox.additionalRegisters.R5.renderedValue
-                try {
-                  this.royaltyAddress = await ergoTreeToAddress(this.royaltyErgoTree)
-                } catch (e) {
-                  logger.next({
-                    message: `failed to get box id R5 royalty address - ${e}`,
-                    box_id: this.creationBox,
-                    R4: preMintBox.additionalRegisters.R4,
-                    R5: preMintBox.additionalRegisters.R5
-                  })
-                  return
+            })
+
+            let royaltyValueInt: number = 0
+            // try and get R4 for royalty value
+            try {
+              // Handle V1 of the Artwork Standard - https://github.com/ergoplatform/eips/blob/master/eip-0024.md
+              if (preMintBox.additionalRegisters.R4.sigmaType === "Int" ||
+                (preMintBox.additionalRegisters.R4.sigmaType === "SInt" && preMintBox.additionalRegisters.R5.sigmaType !== "Coll[(Coll[SByte], SInt)]")) {
+                royaltyValueInt = Number(preMintBox.additionalRegisters.R4.renderedValue)
+                // check for valid royalty amount, between 0 and 200 inclusive.
+                if (royaltyValueInt >= 0 && royaltyValueInt <= 200) {
+                  this.royalties = true
+                  this.royaltyValue = royaltyValueInt
+                  this.royaltyErgoTree = preMintBox.additionalRegisters.R5.renderedValue
+                  try {
+                    this.royaltyAddress = await ergoTreeToAddress(this.royaltyErgoTree)
+                  } catch (e) {
+                    logger.next({
+                      message: "failed to get box id R5 royalty address",
+                      error: e,
+                      level: "error",
+                      box_id: this.creationBox,
+                      token_id: this.tokenId,
+                      roy_ergotree: this.royaltyErgoTree,
+                      R4: preMintBox.additionalRegisters.R4,
+                      R5: preMintBox.additionalRegisters.R5
+                    })
+                    return
+                  }
+
+                  // convert V1 royalty standard to fit V2 so we can add them to the royalties db table later
+                  const royalty = [this.royaltyAddress, this.royaltyErgoTree, this.royaltyValue]
+                  this.royaltiesV2Array.push(royalty)
                 }
+              } // V2 of the Artwork Standard
+              else if (preMintBox.additionalRegisters.R4.sigmaType === "SInt" && preMintBox.additionalRegisters.R4.renderedValue === "2") {
+                if (preMintBox.additionalRegisters.R5.renderedValue !== "[]") {
+                  // need to convert a string representation of a 2 dimensional array
+                  this.royalties = true
+                  this.royaltyValue = -1
+                  // Replace square brackets with JSON-compatible format by wrapping strings in quotes
+                  const royArray = preMintBox.additionalRegisters.R5.renderedValue.replace(/([a-fA-F0-9]+)/g, '"$1"')
+                  const royArrayJson = JSON.parse(royArray)
+
+                  const royaltyArray = []
+                  // Parse each pair into sub-array
+                  for (var royalty = 0; royalty < royArrayJson.length; royalty++) {
+                    let royaltyAddress = ""
+                    try {
+                      royaltyAddress = await ergoTreeToAddress(royArrayJson[royalty][0])
+                    } catch (e) {
+                      logger.next({
+                        message: "failed to get box id R5 royalty address",
+                        error: e,
+                        level: "error",
+                        box_id: this.creationBox,
+                        token_id: this.tokenId,
+                        roy_ergotree: royArrayJson[royalty][0],
+                        R4: preMintBox.additionalRegisters.R4,
+                        R5: preMintBox.additionalRegisters.R5
+                      })
+                      return
+                    }
+                    royaltyArray.push([royaltyAddress, royArrayJson[royalty][0], parseInt(royArrayJson[royalty][1])])
+                  }
+
+                  this.royaltiesV2Array = royaltyArray
+                }
+              } else {
+                logger.next({
+                  message: "unknown artwork type based on register R4",
+                  box_id: this.creationBox,
+                  additional_registers: preMintBox.additionalRegisters
+                })
+                return
               }
             } catch (e) {
               logger.next({
-                message: `failed to get box id R4 royalty value - ${e}`,
+                message: "failed to get box id R4 royalty value",
+                error: e,
+                level: "error",
                 box_id: this.creationBox,
                 R4: preMintBox.additionalRegisters.R4,
                 R5: preMintBox.additionalRegisters.R5

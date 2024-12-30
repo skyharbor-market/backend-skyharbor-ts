@@ -1,6 +1,7 @@
 import { get, post } from "./rest"
 import * as dotenv from "dotenv"
 import path from "path"
+import logger from '../logger'
 
 // in order to secure the node requests (port 9053) the following setting have been done on apache
 // prevent any connection to 9053 except from localhost
@@ -15,23 +16,23 @@ const NODE_WALLET_PASS = process.env.NODE_WALLET_PASS || ""
 
 async function getRequest(url: any, apiKey = '') {
     return await get(NODE_BASE_URL + url, apiKey).then(res => {
-        return { data: res };
-    });
+      return { data: res }
+    })
 }
 
 async function postRequest(url: any, body = {}, apiKey = '') {
     try {
-        const res = await post(NODE_BASE_URL + url, body, apiKey)
-        return { data: res };
+      const res = await post(NODE_BASE_URL + url, body, apiKey)
+      return { data: res }
     } catch(e) {
-        console.log("postRequest", e);
-        return { data: e }
+      logger.error({ message: "rest post request failed", body: body, url: url, error: e})
+      return { data: e }
     }
 }
 
 export async function getLastHeaders() {
     return await getRequest('/blocks/lastHeaders/10')
-        .then(res => res.data);
+      .then(res => res.data)
 }
 
 export async function getCurrentBlockHeight(): Promise<number> {
@@ -87,7 +88,7 @@ export async function unlockWallet(): Promise<string | Error> {
   if (resp.data.hasOwnProperty("error")) {
     return new Error(JSON.stringify(resp.data.reason))
   }
-  console.log(resp.data)
+
   return ""
 }
 
@@ -97,7 +98,6 @@ export async function lockWallet(): Promise<string | Error> {
   if (resp.data.hasOwnProperty("error")) {
     return new Error(JSON.stringify(resp.data.reason))
   }
-  console.log(resp.data)
   return ""
 }
 
@@ -118,21 +118,27 @@ export async function getBoxBinaryMempool(boxId: string): Promise<any | Error> {
 export async function generateTransaction(body: any): Promise<any | Error> {
   const resp = await postRequest('/wallet/transaction/generate', body, NODE_API_KEY)
 
-  if (resp.data.hasOwnProperty("error")) {
-    return new Error(JSON.stringify(resp.data.reason))
+  // parse json body
+  const txBody = await resp.data.json()
+
+  if (txBody.hasOwnProperty("error")) {
+    return new Error(JSON.stringify(txBody.error.reason))
   }
-  console.log(resp.data)
-  return resp.data
+
+  return txBody
 }
 
-export async function sendTransaction(body: any): Promise<string | Error> {
+export async function sendTransaction(body: any): Promise<any | Error> {
   const resp = await postRequest('/wallet/transaction/send', body, NODE_API_KEY)
 
-  if (resp.data.hasOwnProperty("error")) {
-    return new Error(JSON.stringify(resp.data.reason))
+  // parse json body for tx Id
+  const txId = await resp.data.json()
+
+  if (txId.hasOwnProperty("error")) {
+    return new Error(JSON.stringify(txId.error.reason))
   }
-  console.log(resp.data)
-  return resp.data
+
+  return txId
 }
 
 export async function redundancyGetConfirmedUtxosByAddress(address: string): Promise<any[]> {
@@ -185,7 +191,7 @@ export async function redundancyGetUtxosMempoolOnly(address: string): Promise<an
         throw err
       });
     if (batch.length !== 0) {
-      console.log(JSON.stringify(batch))
+      logger.info({ message: "utxo batch received", batch: batch })
       // TODO: parse through output and only return utxos with address if possible
       //utxos = utxos.concat(batch)
     } else {

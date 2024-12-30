@@ -8,6 +8,7 @@ import { Sale } from "./sale"
 import {
   checkTokenExistsOnDb,
   addTokenToDb,
+  addRoyaltiesToDb,
   addOrReactivateSale,
   writeFinishedSaleToDb,
   getActiveSalesBySaId,
@@ -100,28 +101,23 @@ export class SalesScanner {
     for (const utxo of utxos) {
       // if new UTXO is not on activeSales list
       if (!this.ActiveSalesUnderAllSa.includes(utxo.boxId) && !this.OmittedSales.includes(utxo.boxId)) {
-        logger.next({ message: "box id is new, processing...", box_id: utxo.boxId })
         try {
           const sb: SaleBox = SaleBox.decodeBox(logger, utxo)
           sb.salesAddress = salesAddr
-          logger.next({ message: "box id decoded", box_id: utxo.boxId })
 
           if (sb.validSale && sb.tokenId !== undefined) {
             // if token does not exist on db yet,
             // get token info and add token to db
             const t = await SalesScanner.processToken(logger, sb.tokenId)
-            logger.next({ message: "token id processed", token_id: sb.tokenId })
 
             if (t.valid) {
               const sale = await SalesScanner.createValidSale(logger, sb, t)
-              logger.next({ message: "sale details with boxid created", box_id: sale.boxId })
               // add to db under active sales
               await addOrReactivateSale(sale)
-              logger.next({ message: "sale with boxid added to db", box_id: sale.boxId })
               // add to activeSales list
               this.ActiveSalesUnderAllSa.push(sale.boxId!)
             } else {
-              logger.next({ message: "token was invalid!", token_id: t.tokenId })
+              logger.next({ message: "token was invalid!", token_id: t.tokenId, box_id:utxo.boxId })
               this.OmittedSales.push(utxo.boxId)
             }
           } else {
@@ -129,7 +125,7 @@ export class SalesScanner {
             this.OmittedSales.push(utxo.boxId);
           }
         } catch (error) {
-          logger.next({ message: `failed to decode utxo box - ${error}`, box_id: utxo.boxId })
+          logger.next({ message: "failed to decode utxo box", level: "error", error: error, box_id: utxo.boxId })
         }
       }
     }
@@ -146,7 +142,6 @@ export class SalesScanner {
       await token.getInfoOnSelf(logger)
 
       if (token.valid) {
-        logger.next({ message: "adding valid token to db...", token_id: tokenId })
         const ret = await addTokenToDb(token)
         if (typeof ret !== "undefined") {
           logger.next({ message: "failed to add token to db", level: "error", error: ret.message, token_id: tokenId })
@@ -156,6 +151,14 @@ export class SalesScanner {
       } else {
         token.logInfoOnSelf(logger)
       }
+
+      if (token.royaltiesV2Array.length > 0) {
+        const ret = await addRoyaltiesToDb(token)
+        if (typeof ret !== "undefined") {
+          logger.next({ message: "failed to add token royalties to db", level: "error", error: ret.message, token_id: tokenId })
+        }
+      }
+
       return token
     }
 

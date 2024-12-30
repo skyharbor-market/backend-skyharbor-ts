@@ -130,9 +130,10 @@ const salesScanner = {
     logger.next({ message: "Start of infinite sales scanner loop" })
     while (true) {
       try {
-        let newBlock = await scanner.checkForNewBlock(currentHeight)
-        if (newBlock) {
+        let newBlock = await getCurrentBlockHeight()
+        if (newBlock !== currentHeight) {
           logger.next({ message: 'new block found', block_height: newBlock })
+          currentHeight = newBlock
 
           for (const sa of scanner.SalesAddresses) {
             //TODO: need method to get utxo's under sa and store in local storage, so below 2 methods don't have to do it twice. implement below too.
@@ -149,18 +150,21 @@ const salesScanner = {
           await sleep(scanner.POST_NEW_BLOCK_WAIT_TIME_MS)
 
           //check any tx's which confirmed in block
-          await this.processInactiveSales()
-          logger.next({ message: "inactive sales processed..." })
+          const inActiveSales = await getAllInactiveSales()
+          if (typeof inActiveSales !== "undefined") {
+            await scanner.finaliseInactiveSales(logger, inActiveSales.rows)
+          } else {
+            logger.next({ message: "No Inactive Sales found" })
+          }
 
-          logger.next({ message: "paying team..." })
           try {
-              await checkBalancePayTeamWithInputLimit(scanner.NODE_MAIN_WALLET_ADDRESS)
+            await checkBalancePayTeamWithInputLimit(scanner.NODE_MAIN_WALLET_ADDRESS)
           } catch (error) {
             logger.next({ message: "Error occured whilst trying to pay team!", level: "error", error: error})
           }
         } else {
           // should be once every 20s if blockPollRate is 1 seconds, once every 20s is blockPollrate is 10s.
-          logger.next({ message: "Still alive, getting mempool utxo's"})
+          logger.next({ message: "Still alive, getting mempool utxo's", sales_addresses_length: scanner.SalesAddresses.length })
           //for each sales address being tracked -
           // just process new utxo's in the mempool, add to sales.
 

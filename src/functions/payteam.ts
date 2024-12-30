@@ -151,10 +151,12 @@ async function payTeam(origPayAmount: number, inputs: string[], nodeMainWalletAd
     return
   }
 
-  // gen transaction
-  const gen = await generateTransaction(body)
-  if (typeof gen !== "number") {
-    logger.error({ message: "failed to generate tx from node", error: gen.message})
+  logger.info({ message: "generating tx to pay team", body: body })
+
+  const txPayload = await generateTransaction(body)
+
+  if (txPayload.hasOwnProperty("error")) {
+    logger.error({ message: "failed to generate tx from node", error: txPayload })
     return
   }
 
@@ -162,25 +164,19 @@ async function payTeam(origPayAmount: number, inputs: string[], nodeMainWalletAd
   // team accumulated pay DOES NOT need be cleared down as it is properly scoped to this method.
   // REMOVED the clear down of the array, AS THE BATCHED TOKEN / PAYMENTS need to be retained between loops.
   // CLEARED DOWN HERE as the node request is recorded, so those tokens / payments should be considered sent even if sending issue.
-  logger.info({ message: "ORIGINAL PAY AMOUNT", erg_orig_amount: origPayAmount })
   let finalTotal = feeAmount
 
   for (const p of awaitingPayments) {
     finalTotal = finalTotal + p.nanoErgAmount
   }
 
-  logger.info({ message: "accumulated PAY AMOUNT", erg_final_total: finalTotal, generate_tx_resp_code: gen })
+  logger.info({ message: "sending transaction to pay team", erg_orig_amount: origPayAmount, erg_final_total: finalTotal, tx_payload: txPayload })
 
-  if (gen === 200) {
-    logger.info({ message: "sending transaction...", body: body })
-
-    // const txResp = await sendTransaction(body)
-    // if (typeof txResp === "string") {
-    //   logger.info({ message: `Team pay tx: ${txResp} was successful!`})
-    // } else {
-    //   logger.error({ message: `Send tx failed!`})
-    // }
-
+  const txResp = await sendTransaction(txPayload)
+  if (txResp.hasOwnProperty("error")) {
+    logger.error({ message: "Send tx failed!", error: txResp })
+  } else {
+    logger.info({ message: "Team pay tx was successful!", tx_id: txResp})
   }
 }
 
@@ -189,14 +185,6 @@ export async function checkBalancePayTeamWithInputLimit(nodeMainWalletAddr: stri
 
   if (typeof walletBalance === "number") {
     if (walletBalance > SCANNER_DECIMAL_PAY_THRESHOLD) {
-
-      const unlock = await unlockWallet()
-      if (typeof unlock !== "string") {
-        logger.error({ message: "failed to unlock wallet", error: unlock.message })
-        return
-      }
-
-      logger.info({ message: "node wallet successfully unlocked" })
 
       let unspentUtxos = await getUnspentUtxos(-1,0)
 
@@ -225,7 +213,18 @@ export async function checkBalancePayTeamWithInputLimit(nodeMainWalletAddr: stri
           }
 
           if (balance > MIN_NERG_TEAM_PAY_TOTAL) {
-            payTeam(balance, boxIds, nodeMainWalletAddr)
+            const unlock = await unlockWallet()
+            if (typeof unlock !== "string") {
+              logger.error({ message: "failed to unlock wallet", error: unlock.message })
+              return
+            }
+
+            await payTeam(balance, boxIds, nodeMainWalletAddr)
+
+            const lock = await lockWallet()
+            if (typeof lock !== "string") {
+              logger.error({ message: "failed to lock wallet", error: lock.message })
+            }
           } else {
             logger.info({
               message: "The utxos remaining have balance which is lower than minimum not sending..",
@@ -237,13 +236,6 @@ export async function checkBalancePayTeamWithInputLimit(nodeMainWalletAddr: stri
           unspentUtxos = unspentUtxos.filter((utxo) => {
             !slicedUtxos.includes(utxo)
           })
-        }
-
-        const lock = await lockWallet()
-        if (typeof lock !== "string") {
-          logger.error({ message: "failed to lock wallet", error: lock.message })
-        } else {
-          logger.info({ message: "wallet locked successfully" })
         }
 
       } else {

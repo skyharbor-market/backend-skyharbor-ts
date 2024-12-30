@@ -290,7 +290,6 @@ export async function getOrCreateCollectionsForMintAddress(token: Token): Promis
 }
 
 export async function addOrReactivateSale(s: Sale): Promise<void> {
-  logger.info({ message: 'Adding or updating sale', box_id: s.boxId })
 
   const dbQuery: QueryConfig<any[]> = { text: "", values: [] }
 
@@ -353,6 +352,46 @@ export async function addTokenToDb(token: Token): Promise<Error | undefined> {
       `${token.mintAddress}`         // text, nullable
     ]
   }
+
+  try {
+    await executeDBQuery(dbQuery)
+  } catch (e) {
+    logger.error({
+      message: "DB error in sales scanner",
+      error: e.message,
+      query_text: dbQuery.text,
+      query_values: dbQuery.values
+    })
+    return new Error(e.message)
+  }
+
+  return undefined
+}
+
+export async function addRoyaltiesToDb(token: Token): Promise<Error | undefined> {
+
+  const dbQuery: QueryConfig<any[]> = {
+    text: "",
+    values: []
+  }
+
+  dbQuery.text = 'insert into royalties (token_id, percentage, addr, ergotree) values '
+  dbQuery.values = []
+
+  let valCounter = 1
+
+  for (const royalty of token.royaltiesV2Array) {
+    dbQuery.text = dbQuery.text + `($${valCounter++},$${valCounter++},$${valCounter++},$${valCounter++}),`
+    dbQuery.values.push(`${token.tokenId}`)
+    dbQuery.values.push(`${royalty[2]}`)
+    dbQuery.values.push(`${royalty[0]}`)
+    dbQuery.values.push(`${royalty[1]}`)
+  }
+
+  // remove trailing comma
+  dbQuery.text = dbQuery.text.slice(0, -1)
+
+  dbQuery.text = dbQuery.text + ' on conflict on constraint royalties_pkey do nothing'
 
   try {
     await executeDBQuery(dbQuery)
