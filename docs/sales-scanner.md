@@ -69,3 +69,69 @@ The file which contains the logic which pays the team is located in, `src/functi
 ### NFT Identify and Royalty Parsing
 
 One of the most important functions in the sales scanner is located in the file, `src/classes/token.ts`, and is called, `getInfoOnSelf(logger: any)`. This function essentially checks to see what type of NFT the token is (image, audio, video, utility, etc), then it proceeds to extract the royalty ergotree and percentages data.
+
+## Prometheus Metrics
+
+I've started to incorportate prometheus style metrics into the app. These metrics are exposed via the new `/metrics` endpoint. I think the best way to push these metrics is to run a local prometheus instance to scrape the app and then do a `remote_write` to the grafana cloud instance.
+
+This is assuming prometheus is running as a docker container and the process would look like:
+
+```bash
+mkdir ~/prometheus
+cd prometheus
+vi prometheus.yml
+```
+
+```yaml
+global:
+  scrape_interval: 15s
+  scrape_timeout: 10s
+  evaluation_interval: 15s
+
+scrape_configs:
+  - job_name: sales-scanner
+    honor_timestamps: true
+    scrape_interval: 30s
+    scrape_timeout: 10s
+    metrics_path: /metrics
+    scheme: http
+    static_configs:
+      - targets:
+          - host.docker.internal:8080
+
+remote_write:
+  - url: https://prometheus-prod-13-prod-us-east-0.grafana.net/api/prom/push
+    basic_auth:
+      username: 1936020
+      password: <Your Grafana.com API Token>
+```
+
+```bash
+vi docker-compose.yml
+```
+
+```yaml
+services:
+  prometheus:
+    image: prom/prometheus:v3.0.1
+    container_name: prometheus
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--web.enable-lifecycle"
+      - "--storage.tsdb.retention.size=32MB"
+    ports:
+      - 9090:9090
+    restart: unless-stopped
+    volumes:
+      - ./:/etc/prometheus
+      - prom_data:/prometheus
+
+volumes:
+  prom_data:
+```
+
+start the docker service
+
+```bash
+docker compose up -d
+```

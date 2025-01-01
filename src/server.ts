@@ -30,6 +30,7 @@ import morganMiddleware from "./middlewares/morganMiddleware"
 import { apiKeyUser, apiKeyUserPass } from "./consts/users"
 import PgBoss from "pg-boss"
 import { deactivateSubscriptionApiKey, updateApiKeyWithSubscription, getQueuedJobs } from './api/utils/db'
+import promClient from "./metrics/prometheus"
 import logger from "./logger"
 import * as dotenv from "dotenv"
 
@@ -115,7 +116,7 @@ const ePayPool = new Pool({
 // use pgboss for non test environments
 if (process.env.NODE_ENV !== 'test') {
   globalThis.queuedJobs = []
-  globalThis.pgboss = new PgBoss(`postgres://${apiKeyUser}:${apiKeyUserPass}@localhost/apikeys`)
+  globalThis.pgboss = new PgBoss(`postgres://${apiKeyUser}:${apiKeyUserPass}@${DB_HOST_ADDR}/apikeys`)
   globalThis.pgboss.on('error', error => logger.error(error))
   globalThis.pgboss.start().then(async () => {
     let count = 0
@@ -159,6 +160,10 @@ app.use('/api/utils', cors(), utilsRouter);
 app.use('/api/transactions', cors(), transactionsRouter);
 app.use('/api/keys', cors(), apiKeysRouter);
 app.use('/api/stripe', cors(), stripeRouter);
+app.get('/metrics', async (req: Request, res: Response) => {
+  res.set('Content-Type', promClient.register.contentType)
+  res.end(await promClient.register.metrics())
+})
 // public facing APIs with rate limiting
 app.use('/api/v1/sales', rateLimiterPgMiddleware, pubTestKeySalesRouter);
 app.use('/api/v1/txs', rateLimiterPgMiddleware, pubTestKeyTxsRouter);

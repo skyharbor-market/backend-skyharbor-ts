@@ -96,7 +96,7 @@ export class SalesScanner {
     return obj
   }
 
-  public async processUtxosUnderSa(logger: any, utxos: any[], salesAddr: SalesAddress) {
+  public async processUtxosUnderSa(logger: any, metrics: any, utxos: any[], salesAddr: SalesAddress) {
     logger.next({ message: "processing utxo boxes for sales address", utxo_count: utxos.length, sales_address: salesAddr.address })
     for (const utxo of utxos) {
       // if new UTXO is not on activeSales list
@@ -108,7 +108,7 @@ export class SalesScanner {
           if (sb.validSale && sb.tokenId !== undefined) {
             // if token does not exist on db yet,
             // get token info and add token to db
-            const t = await SalesScanner.processToken(logger, sb.tokenId)
+            const t = await SalesScanner.processToken(logger, metrics, sb.tokenId)
 
             if (t.valid) {
               const sale = await SalesScanner.createValidSale(logger, sb, t)
@@ -131,7 +131,7 @@ export class SalesScanner {
     }
   }
 
-  private static async processToken(logger: any, tokenId: string): Promise<Token> {
+  private static async processToken(logger: any, metrics: any, tokenId: string): Promise<Token> {
     const token = new Token(tokenId)
 
     if (await checkTokenExistsOnDb(tokenId)) {
@@ -147,16 +147,17 @@ export class SalesScanner {
           logger.next({ message: "failed to add token to db", level: "error", error: ret.message, token_id: tokenId })
         } else {
           logger.next({ message: "token added to db!", token_id: tokenId })
+          if (token.royaltiesV2Array.length > 0) {
+            const ret = await addRoyaltiesToDb(token)
+            if (typeof ret !== "undefined") {
+              logger.next({ message: "failed to add token royalties to db", level: "error", error: ret.message, token_id: tokenId })
+            }
+          }
+          metrics.next({ name: "newTokenSuccessCounter", labels: [`${token.collectionSysName}`, `${token.tokenTypeStr}`]})
         }
       } else {
         token.logInfoOnSelf(logger)
-      }
-
-      if (token.royaltiesV2Array.length > 0) {
-        const ret = await addRoyaltiesToDb(token)
-        if (typeof ret !== "undefined") {
-          logger.next({ message: "failed to add token royalties to db", level: "error", error: ret.message, token_id: tokenId })
-        }
+        metrics.next({ name: "newTokenFailedCounter", labels: [`${token.collectionSysName}`, `${token.tokenTypeStr}`]})
       }
 
       return token

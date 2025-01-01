@@ -5,9 +5,16 @@ import { testApiKeysPool } from '../../tests/pools'
 import { blake2s } from '@noble/hashes/blake2s'
 import { Pool } from 'pg'
 import { getApiKeyByPrefix, ApiKey, DBError } from '../api/utils/db'
+import path from "path"
+import * as dotenv from "dotenv"
+
+const envFilePath = path.resolve(process.cwd(), './.env')
+dotenv.config({ path: envFilePath })
+
+const DB_HOST_ADDR = process.env.DB_HOST_ADDR || "localhost"
 
 const aKeyPool = new Pool({
-  host: "localhost",
+  host: DB_HOST_ADDR,
   port: 5432,
   database: "apikeys",
   user: apiKeyUser,

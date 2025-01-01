@@ -32,6 +32,7 @@ const sleep = async (durationMs: number) => {
 
 const scanner = new SalesScanner()
 let logger = new Subject()
+let metrics = new Subject()
 let currentHeight: number = 1
 
 const salesScanner = {
@@ -112,7 +113,7 @@ const salesScanner = {
       for (const sa of scanner.SalesAddresses) {
         logger.next({ message: "processing sales address", sales_address: `${sa.address}` })
         const utxosForSa = await getAllUtxosByAddress(logger, sa.address)
-        await scanner.processUtxosUnderSa(logger, utxosForSa, sa)
+        await scanner.processUtxosUnderSa(logger, metrics, utxosForSa, sa)
       }
     } catch(error) {
       throw error
@@ -143,7 +144,7 @@ const salesScanner = {
             //check mempool and address for activeSales, mark as inactive.
             await scanner.markInactiveSalesForSaOnDb(logger, utxosForSa, sa)
             // process any new utxo's
-            await scanner.processUtxosUnderSa(logger, utxosForSa, sa)
+            await scanner.processUtxosUnderSa(logger, metrics, utxosForSa, sa)
           }
 
           //sleep to allow txs to finalise
@@ -170,7 +171,7 @@ const salesScanner = {
 
           for (const sa of scanner.SalesAddresses) {
             const utxosMem = await redundancyGetUtxosMempoolOnly(logger, sa.address);
-            await scanner.processUtxosUnderSa(logger, utxosMem, sa)
+            await scanner.processUtxosUnderSa(logger, metrics, utxosMem, sa)
           }
         }
 
@@ -185,9 +186,14 @@ const salesScanner = {
   finish() {
     logger.complete()
     logger = new Subject()
+    metrics.complete()
+    metrics = new Subject()
   },
   values() {
     return Observable.from(logger)
+  },
+  metrix() {
+    return Observable.from(metrics)
   },
 }
 

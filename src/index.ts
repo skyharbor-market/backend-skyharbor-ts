@@ -9,6 +9,7 @@ import dotenv from "dotenv";
 import logger from "./logger";
 import { spawn, Thread, Worker } from "threads";
 import { SSWorker } from "./workers/salesScanner";
+import { metrics } from "./metrics/prometheus";
 
 dotenv.config();
 const host = process.env.HOST || "0.0.0.0";
@@ -65,11 +66,9 @@ function onError(error: any) {
     case "EACCES":
       logger.error(`${bind} requires elevated privileges`);
       process.exit(1);
-      break;
     case "EADDRINUSE":
       logger.error(`${bind} is already in use`);
       process.exit(1);
-      break;
     default:
       throw error;
   }
@@ -81,6 +80,17 @@ function onError(error: any) {
   try {
     ssWorker.values().subscribe((log: any) => {
       logger.info(log);
+    });
+    ssWorker.metrix().subscribe((event: any) => {
+      // TODO: figure out a better way to do this
+      switch (event.name) {
+        case "newTokenSuccessCounter":
+          metrics.newTokenSuccessCounter.labels(...event.labels).inc();
+          break;
+        case "newTokenFailedCounter":
+          metrics.newTokenFailedCounter.labels(...event.labels).inc();
+          break;
+      }
     });
     try {
       await ssWorker.init();
