@@ -122,38 +122,38 @@ const ePayPool = new Pool({
 });
 
 // use pgboss for non test environments
-if (process.env.NODE_ENV !== 'test') {
-  globalThis.queuedJobs = []
-  globalThis.pgboss = new PgBoss(`postgres://${apiKeyUser}:${apiKeyUserPass}@${DB_HOST_ADDR}/apikeys`)
-  globalThis.pgboss.on('error', error => logger.error(error))
-  globalThis.pgboss.start().then(async () => {
-    let count = 0
-    const jobs = await getQueuedJobs('subscription-tasks')
-    if (typeof jobs !== "undefined") {
-      count = jobs.length
-      globalThis.queuedJobs = jobs
-    }
-    logger.info({ message: "pgboss started", queued_jobs: count })
-  })
+// if (process.env.NODE_ENV !== 'test') {
+//   globalThis.queuedJobs = []
+//   globalThis.pgboss = new PgBoss(`postgres://${apiKeyUser}:${apiKeyUserPass}@${DB_HOST_ADDR}/apikeys`)
+//   globalThis.pgboss.on('error', error => logger.error(error))
+//   globalThis.pgboss.start().then(async () => {
+//     let count = 0
+//     const jobs = await getQueuedJobs('subscription-tasks')
+//     if (typeof jobs !== "undefined") {
+//       count = jobs.length
+//       globalThis.queuedJobs = jobs
+//     }
+//     logger.info({ message: "pgboss started", queued_jobs: count })
+//   })
 
-  globalThis.pgboss.work('subscription-tasks', { newJobCheckIntervalSeconds: 300 }, async (job: any) => {
-    if (job.data.task === "deactivate") {
-      deactivateSubscriptionApiKey(job.data.subscription_id)
-    } else if (job.data.task === "downgrade") {
-      updateApiKeyWithSubscription(job.data.subscription_id, job.data.price_id)
-    }
-    // remove job from local queue
-    const idx = globalThis.queuedJobs.findIndex((id) => id === job.id)
-    if (idx !== -1) {
-      globalThis.queuedJobs.splice(idx, 1)
-    }
-    logger.info({
-      message: "job from subscription-tasks queue completed",
-      task: job.data.task,
-      subscription_id: job.data.subscription_id
-    })
-  })
-}
+//   globalThis.pgboss.work('subscription-tasks', { newJobCheckIntervalSeconds: 300 }, async (job: any) => {
+//     if (job.data.task === "deactivate") {
+//       deactivateSubscriptionApiKey(job.data.subscription_id)
+//     } else if (job.data.task === "downgrade") {
+//       updateApiKeyWithSubscription(job.data.subscription_id, job.data.price_id)
+//     }
+//     // remove job from local queue
+//     const idx = globalThis.queuedJobs.findIndex((id) => id === job.id)
+//     if (idx !== -1) {
+//       globalThis.queuedJobs.splice(idx, 1)
+//     }
+//     logger.info({
+//       message: "job from subscription-tasks queue completed",
+//       task: job.data.task,
+//       subscription_id: job.data.subscription_id
+//     })
+//   })
+// }
 
 const app: Application = createServer()
 

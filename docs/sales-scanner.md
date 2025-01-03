@@ -14,7 +14,7 @@ PORT=8080
 HTTP_503_WAIT_TIME_MS=180000
 
 # prod
-DB_HOST_ADDR=104.248.54.140
+DB_HOST_ADDR=localhost
 
 EXPLORER_BASE_PATH=https://api.ergoplatform.com/api/v1
 NODE_BASE_URL=http://127.0.0.1:9053
@@ -42,6 +42,7 @@ LOKI_ENABLED=true
 LOKI_ENDPOINT=https://logs-prod-006.grafana.net
 LOKI_USERNAME=user
 LOKI_PASSWORD=password
+
 ```
 
 ## New DB Migrations
