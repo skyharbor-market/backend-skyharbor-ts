@@ -14,7 +14,6 @@ will have to make sure it's secured though. updating itself isn't that much of a
 */
 
 // @ts-ignore
-import { siteUser, siteUserPass, epayUser, epayUserPass } from "./consts/users"
 import { initConsts } from "./consts/apiConsts"
 
 import compression from "compression"
@@ -27,7 +26,6 @@ import path from "path"
 import cookieParser from "cookie-parser"
 import { rateLimiterPgMiddleware } from "./middlewares/rateLimiterPg"
 import morganMiddleware from "./middlewares/morganMiddleware"
-import { apiKeyUser, apiKeyUserPass } from "./consts/users"
 import PgBoss from "pg-boss"
 import { deactivateSubscriptionApiKey, updateApiKeyWithSubscription, getQueuedJobs } from './api/utils/db'
 import promClient from "./metrics/prometheus"
@@ -55,6 +53,14 @@ declare global {
 const envFilePath = path.resolve(process.cwd(), './.env')
 dotenv.config({ path: envFilePath })
 
+
+const apiKeyUser = process.env.API_KEY_USER
+const apiKeyUserPass = process.env.API_KEY_USER_PASS
+const siteUser = process.env.SITE_USER
+const siteUserPass = process.env.SITE_USER_PASS
+const epayUser = process.env.ERGO_PAY_USER
+const epayUserPass = process.env.ERGO_PAY_USER_PASS
+
 function shouldCompress(req: Request, res: Response) {
   if (req.headers["x-no-compression"]) {
     // don't compress responses with this request header
@@ -64,6 +70,8 @@ function shouldCompress(req: Request, res: Response) {
   // fallback to standard filter function
   return compression.filter(req, res);
 }
+
+
 
 // Need to modularize this to run jest test cases
 export function createServer(): Application {

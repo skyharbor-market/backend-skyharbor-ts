@@ -1,5 +1,15 @@
 import { Pool } from 'pg'
-import { testApiKeyUser, testApiKeyUserPass, postgresUser, postgresUserPass } from '../src/consts/users'
+
+import * as dotenv from "dotenv"
+import path from "path"
+
+const envFilePath = path.resolve(process.cwd(), './.env')
+dotenv.config({ path: envFilePath })
+
+const testApiKeyUser = process.env.TEST_API_KEY_USER
+const testApiKeyUserPass = process.env.TEST_API_KEY_USER_PASS
+const postgresUser = process.env.POSTGRES_USER
+const postgresUserPass = process.env.POSTGRES_USER_PASS
 
 export const testPool = new Pool({
   host: "localhost",
