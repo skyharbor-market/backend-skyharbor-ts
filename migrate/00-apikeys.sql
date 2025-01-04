@@ -20,6 +20,8 @@ CREATE TABLE IF NOT EXISTS api_users (
   stripe_subscription_id text unique null
 );
 
+ALTER TABLE api_users OWNER TO apikeys;
+
 CREATE SEQUENCE IF NOT EXISTS public.api_users_id_seq
   AS integer
   START WITH 1
@@ -42,12 +44,16 @@ CREATE TABLE IF NOT EXISTS key_limits (
   expire bigint null
 );
 
+ALTER TABLE key_limits OWNER TO apikeys;
+
 -- create key_status table
 
 CREATE TABLE IF NOT EXISTS key_status (
   id     integer unique not null,
   status text primary key not null
 );
+
+ALTER TABLE key_status OWNER TO apikeys;
 
 CREATE SEQUENCE IF NOT EXISTS public.key_status_id_seq
   AS integer
@@ -71,6 +77,8 @@ CREATE TABLE IF NOT EXISTS plan_tiers (
   stripe_price_id      text,
   stripe_price_id_test text
 );
+
+ALTER TABLE plan_tiers OWNER TO apikeys;
 
 CREATE SEQUENCE IF NOT EXISTS public.plan_tiers_id_seq
   AS integer
@@ -100,6 +108,8 @@ CREATE TABLE IF NOT EXISTS keys (
   plan_tier      text default 'free'::text not null
 );
 
+ALTER TABLE keys OWNER TO apikeys;
+
 CREATE SEQUENCE IF NOT EXISTS public.keys_id_seq
   AS integer
   START WITH 1
@@ -114,14 +124,16 @@ ALTER SEQUENCE public.keys_id_seq OWNED BY public.keys.id;
 
 ALTER TABLE ONLY public.keys ALTER COLUMN id SET DEFAULT nextval('public.keys_id_seq'::regclass);
 
+CREATE EXTENSION pgcrypto;
+
 ALTER TABLE ONLY public.keys ADD CONSTRAINT keys_plan_tier_fkey FOREIGN KEY (plan_tier) REFERENCES public.plan_tiers(name);
 ALTER TABLE ONLY public.keys ADD CONSTRAINT keys_status_fkey FOREIGN KEY (status) REFERENCES public.key_status(status);
 ALTER TABLE ONLY public.keys ADD CONSTRAINT keys_user_fkey FOREIGN KEY ("user") REFERENCES public.api_users(name);
-  
+
 -- populate keys status'
 
 INSERT INTO key_status (status) VALUES ('active') ON CONFLICT ON CONSTRAINT key_status_pkey DO NOTHING;
-INSERT INTO key_status (status) VALUES ('inactive') ON CONFLICT ON CONSTRAINT key_status_pkey DO NOTHING;;
+INSERT INTO key_status (status) VALUES ('inactive') ON CONFLICT ON CONSTRAINT key_status_pkey DO NOTHING;
 
 -- populate plan tiers
 
