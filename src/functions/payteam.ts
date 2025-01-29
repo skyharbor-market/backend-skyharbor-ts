@@ -172,11 +172,13 @@ async function payTeam(origPayAmount: number, inputs: string[], nodeMainWalletAd
 
   logger.info({ message: "sending transaction to pay team", erg_orig_amount: origPayAmount, erg_final_total: finalTotal, tx_payload: txPayload })
 
-  const txResp = await sendTransaction(txPayload)
-  if (txResp.hasOwnProperty("error")) {
-    logger.error({ message: "Send tx failed!", error: txResp })
-  } else {
-    logger.info({ message: "Team pay tx was successful!", tx_id: txResp})
+  if (process.env.NODE_ENV === 'production') {
+    const txResp = await sendTransaction(txPayload)
+    if (txResp.hasOwnProperty("error")) {
+      logger.error({ message: "Send tx failed!", error: txResp })
+    } else {
+      logger.info({ message: "Team pay tx was successful!", tx_id: txResp})
+    }
   }
 }
 
