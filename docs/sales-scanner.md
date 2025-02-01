@@ -22,6 +22,15 @@ NODE_BASE_URL=http://127.0.0.1:9053
 NODE_API_KEY=xxxx
 NODE_WALLET_PASS=xxxx
 
+SITE_USER=siteapi
+SITE_USER_PASS=xxxx
+ERGO_PAY_USER=ergopay
+ERGO_PAY_USER_PASS=xxxx
+API_KEY_USER=apikeys
+API_KEY_USER_PASS=xxxx
+TEST_API_KEY_USER=test_apikeys
+TEST_API_KEY_USER_PASS=xxxx
+
 SCANNER_DB_URL=jdbc:postgresql://localhost:5432/skyharbor
 SCANNER_DB_USER=postgres
 SCANNER_DB_PASS=xxxx
@@ -70,3 +79,25 @@ The file which contains the logic which pays the team is located in, `src/functi
 ### NFT Identify and Royalty Parsing
 
 One of the most important functions in the sales scanner is located in the file, `src/classes/token.ts`, and is called, `getInfoOnSelf(logger: any)`. This function essentially checks to see what type of NFT the token is (image, audio, video, utility, etc), then it proceeds to extract the royalty ergotree and percentages data.
+
+## Sales Scanner Operations
+
+### API calls
+
+Since the scanner and backend are combined into a single process, I've implemented a way to pause the scanner if needed by using API calls, please see below.
+
+#### pause scanner
+
+From the localhost only, run the curl command to pause the scanner
+
+```bash
+curl -X PUT http://localhost:8080/api/scanner/pause
+```
+
+#### unpause scanner
+
+From the localhost only, run the curl command to unpause the scanner
+
+```bash
+curl -X PUT http://localhost:8080/api/scanner/unpause
+```

@@ -30,6 +30,10 @@ export const server = app.listen(Number(port), host, async () => {
   logger.info(`listening on port ${port}!`);
 });
 
+declare global {
+  var ssWorker: any;
+}
+
 /**
  * Normalize a port into a number, string, or false.
  */
@@ -76,12 +80,12 @@ function onError(error: any) {
 
 // spawn sales scanner worker thread
 (async () => {
-  const ssWorker = await spawn<SSWorker>(new Worker("./workers/salesScanner.ts"));
+  globalThis.ssWorker = await spawn<SSWorker>(new Worker("./workers/salesScanner.ts"));
   try {
-    ssWorker.values().subscribe((log: any) => {
+    globalThis.ssWorker.values().subscribe((log: any) => {
       logger.info(log);
     });
-    ssWorker.metrix().subscribe((event: any) => {
+    globalThis.ssWorker.metrix().subscribe((event: any) => {
       // TODO: figure out a better way to do this
       switch (event.name) {
         case "newTokenSuccessCounter":
@@ -93,7 +97,7 @@ function onError(error: any) {
       }
     });
     try {
-      await ssWorker.init();
+      await globalThis.ssWorker.init();
     } catch (error) {
       logger.error("failed to create sales scanner worker:", error);
       throw error;
@@ -154,7 +158,7 @@ function onError(error: any) {
     }
 
     try {
-      await ssWorker.scannerLoop();
+      await globalThis.ssWorker.scannerLoop();
     } catch (error) {
       logger.error("infinite scanner loop errored:", error);
       throw error;
@@ -162,7 +166,7 @@ function onError(error: any) {
   } catch (error) {
     logger.error("sales scanner worker thread errored:", error);
   } finally {
-    ssWorker.finish();
-    await Thread.terminate(ssWorker);
+    globalThis.ssWorker.finish();
+    await Thread.terminate(globalThis.ssWorker);
   }
 })();
