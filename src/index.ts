@@ -104,21 +104,21 @@ function onError(error: any) {
     }
 
     try {
-      await ssWorker.loadActiveSalesAddresses();
+      await globalThis.ssWorker.loadActiveSalesAddresses();
     } catch (error) {
       logger.error("failed to load active sales addresses:", error);
       throw error;
     }
 
     try {
-      await ssWorker.deactivateSalesNotOnActiveAddresses();
+      await globalThis.ssWorker.deactivateSalesNotOnActiveAddresses();
     } catch (error) {
       logger.error("failed to deactivate sales not on active addresses:", error);
       throw error;
     }
 
     try {
-      await ssWorker.reactivateSalesOnActiveAddresses();
+      await globalThis.ssWorker.reactivateSalesOnActiveAddresses();
     } catch (error) {
       logger.error("failed to reactivate sales on active addresses:", error);
       throw error;
@@ -126,7 +126,7 @@ function onError(error: any) {
 
     // load existing ACTIVE sales from database into internal activeSalesUnderAllSa list
     try {
-      await ssWorker.getPastProcessedActiveBoxes();
+      await globalThis.ssWorker.getPastProcessedActiveBoxes();
     } catch (error) {
       logger.error("failed to get past processed active boxes:", error);
       throw error;
@@ -134,7 +134,7 @@ function onError(error: any) {
 
     //scan active addresses and update db with new sales
     try {
-      await ssWorker.processNewSales();
+      await globalThis.ssWorker.processNewSales();
     } catch (error) {
       logger.error("failed to process new sale(s):", error);
       throw error;
@@ -151,7 +151,7 @@ function onError(error: any) {
 
     // process straggling inactive sales
     try {
-      await ssWorker.processInactiveSales();
+      await globalThis.ssWorker.processInactiveSales();
     } catch (error) {
       logger.error("failed to process inactive sales:", error);
       throw error;
