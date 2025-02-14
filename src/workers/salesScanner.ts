@@ -131,48 +131,52 @@ const salesScanner = {
     logger.next({ message: "Start of infinite sales scanner loop" })
     while (true) {
       try {
-        let newBlock = await getCurrentBlockHeight()
-        if (newBlock !== currentHeight) {
-          logger.next({ message: 'new block found', block_height: newBlock })
-          currentHeight = newBlock
+        if (!scanner.pauseScanning) {
+          let newBlock = await getCurrentBlockHeight()
+          if (newBlock > currentHeight) {
+            logger.next({ message: 'new block found', block_height: newBlock })
+            currentHeight = newBlock
 
-          for (const sa of scanner.SalesAddresses) {
-            //TODO: need method to get utxo's under sa and store in local storage, so below 2 methods don't have to do it twice. implement below too.
-            // this may already be done with utxos for sa and you forgot to remove todo idk
-            const utxosForSa = await getAllUtxosByAddress(logger, sa.address)
+            for (const sa of scanner.SalesAddresses) {
+              //TODO: need method to get utxo's under sa and store in local storage, so below 2 methods don't have to do it twice. implement below too.
+              // this may already be done with utxos for sa and you forgot to remove todo idk
+              const utxosForSa = await getAllUtxosByAddress(logger, sa.address)
 
-            //check mempool and address for activeSales, mark as inactive.
-            await scanner.markInactiveSalesForSaOnDb(logger, utxosForSa, sa)
-            // process any new utxo's
-            await scanner.processUtxosUnderSa(logger, metrics, utxosForSa, sa)
-          }
+              //check mempool and address for activeSales, mark as inactive.
+              await scanner.markInactiveSalesForSaOnDb(logger, utxosForSa, sa)
+              // process any new utxo's
+              await scanner.processUtxosUnderSa(logger, metrics, utxosForSa, sa)
+            }
 
-          //sleep to allow txs to finalise
-          await sleep(scanner.POST_NEW_BLOCK_WAIT_TIME_MS)
+            //sleep to allow txs to finalise
+            await sleep(scanner.POST_NEW_BLOCK_WAIT_TIME_MS)
 
-          //check any tx's which confirmed in block
-          const inActiveSales = await getAllInactiveSales()
-          if (typeof inActiveSales !== "undefined") {
-            await scanner.finaliseInactiveSales(logger, inActiveSales.rows)
+            //check any tx's which confirmed in block
+            const inActiveSales = await getAllInactiveSales()
+            if (typeof inActiveSales !== "undefined") {
+              await scanner.finaliseInactiveSales(logger, inActiveSales.rows)
+            } else {
+              logger.next({ message: "No Inactive Sales found" })
+            }
+
+            try {
+              await checkBalancePayTeamWithInputLimit(scanner.NODE_MAIN_WALLET_ADDRESS)
+            } catch (error) {
+              logger.next({ message: "Error occured whilst trying to pay team!", level: "error", error: error})
+            }
           } else {
-            logger.next({ message: "No Inactive Sales found" })
-          }
+            // should be once every 20s if blockPollRate is 1 seconds, once every 20s is blockPollrate is 10s.
+            logger.next({ message: "Still alive, getting mempool utxo's", sales_addresses_length: scanner.SalesAddresses.length })
+            //for each sales address being tracked -
+            // just process new utxo's in the mempool, add to sales.
 
-          try {
-            await checkBalancePayTeamWithInputLimit(scanner.NODE_MAIN_WALLET_ADDRESS)
-          } catch (error) {
-            logger.next({ message: "Error occured whilst trying to pay team!", level: "error", error: error})
+            for (const sa of scanner.SalesAddresses) {
+              const utxosMem = await redundancyGetUtxosMempoolOnly(logger, sa.address);
+              await scanner.processUtxosUnderSa(logger, metrics, utxosMem, sa)
+            }
           }
         } else {
-          // should be once every 20s if blockPollRate is 1 seconds, once every 20s is blockPollrate is 10s.
-          logger.next({ message: "Still alive, getting mempool utxo's", sales_addresses_length: scanner.SalesAddresses.length })
-          //for each sales address being tracked -
-          // just process new utxo's in the mempool, add to sales.
-
-          for (const sa of scanner.SalesAddresses) {
-            const utxosMem = await redundancyGetUtxosMempoolOnly(logger, sa.address);
-            await scanner.processUtxosUnderSa(logger, metrics, utxosMem, sa)
-          }
+          logger.next({ message: "scanner paused" })
         }
 
         // wait 'blockPollRateMs' - tune with program loop duration to exec reliably?
@@ -182,6 +186,9 @@ const salesScanner = {
         throw error
       }
     }
+  },
+  pauseScanning(value: boolean) {
+    scanner.UpdatePauseScanning(value)
   },
   finish() {
     logger.complete()

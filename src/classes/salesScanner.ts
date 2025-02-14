@@ -50,6 +50,8 @@ export class SalesScanner {
   // reference block height to know where scanner will start from
   currHeight: number = 1
 
+  pauseScanning: boolean = false
+
   constructor() {
     this.BLOCK_POLL_RATE_MS = process.env.SCANNER_BLOCK_POLL_RATE_MS !== undefined ? Number(process.env.SCANNER_BLOCK_POLL_RATE_MS) : 1000
     this.POST_NEW_BLOCK_WAIT_TIME_MS = process.env.SCANNER_POST_NEW_BLOCK_WAIT_TIME_MS !== undefined ? Number(process.env.SCANNER_POST_NEW_BLOCK_WAIT_TIME_MS) : 5000
@@ -280,5 +282,9 @@ export class SalesScanner {
         logger.next({ message: "could not retrieve info on inactive sale with box id", box_id: boxId.box_id})
       }
     }
+  }
+
+  public UpdatePauseScanning(value: boolean){
+    this.pauseScanning = value
   }
 }

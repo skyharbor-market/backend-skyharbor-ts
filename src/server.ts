@@ -42,6 +42,7 @@ import utilsRouter from "./api/utils.route"
 import transactionsRouter from "./api/transactions/transactions.route"
 import apiKeysRouter from "./api/apiKeys.route"
 import stripeRouter from "./api/stripe.route"
+import scannerRouter from "./api/scanner.route"
 import pubTestKeySalesRouter from "./api/public/sales/test.route"
 import pubTestKeyTxsRouter from "./api/public/txs/test.route"
 
@@ -168,6 +169,7 @@ app.use('/api/utils', cors(), utilsRouter);
 app.use('/api/transactions', cors(), transactionsRouter);
 app.use('/api/keys', cors(), apiKeysRouter);
 app.use('/api/stripe', cors(), stripeRouter);
+app.use('/api/scanner', cors(), scannerRouter);
 app.get('/metrics', async (req: Request, res: Response) => {
   res.set('Content-Type', promClient.register.contentType)
   res.end(await promClient.register.metrics())
