@@ -254,7 +254,7 @@ export async function getOrCreateCollectionsForMintAddress(token: Token): Promis
 
   if (typeof collectionsExistingForAddress === 'undefined') {
     return undefined
-  } else if (collectionsExistingForAddress > 1) {
+  } else if (collectionsExistingForAddress < 1) {
     const unverifiedColl: string[] = []
     const res = await createUnverifiedCollection(token.mintAddress)
     if (typeof res !== 'undefined') {
