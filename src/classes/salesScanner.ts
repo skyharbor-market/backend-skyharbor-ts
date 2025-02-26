@@ -123,7 +123,7 @@ export class SalesScanner {
     }
   }
 
-  public static async processToken(logger: any, metrics: any, saleBox: SaleBox, utxo: any): Promise<void> {
+  private static async processToken(logger: any, metrics: any, saleBox: SaleBox, utxo: any): Promise<void> {
     if (saleBox.tokenId === undefined) {
       logger.next({ message: "token was undefined", token_id: saleBox.tokenId, box_id: saleBox.boxId })
       return
