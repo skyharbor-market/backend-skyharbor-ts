@@ -41,11 +41,11 @@ export class SalesScanner {
   MIN_NERG_TEAM_PAY_TOTAL: bigint = BigInt(1000000000)
 
   // holds all sales addresses to be iterated over and searched for txns.
-  SalesAddresses: SalesAddress[] = []
+  static SalesAddresses: SalesAddress[] = []
 
   //global lists of active / omit sales, not sure if these are needed or can be localised to methods that use em
-  ActiveSalesUnderAllSa: string[] = []
-  OmittedSales: string[] = []
+  static ActiveSalesUnderAllSa: string[] = []
+  static OmittedSales: string[] = []
 
   // reference block height to know where scanner will start from
   currHeight: number = 1
@@ -102,7 +102,7 @@ export class SalesScanner {
     logger.next({ message: "processing utxo boxes for sales address", utxo_count: utxos.length, sales_address: salesAddr.address })
     for (const utxo of utxos) {
       // if new UTXO is not on activeSales list
-      if (!this.ActiveSalesUnderAllSa.includes(utxo.boxId) && !this.OmittedSales.includes(utxo.boxId)) {
+      if (!SalesScanner.ActiveSalesUnderAllSa.includes(utxo.boxId) && !SalesScanner.OmittedSales.includes(utxo.boxId)) {
         try {
           const sb: SaleBox = SaleBox.decodeBox(logger, utxo)
           sb.salesAddress = salesAddr
@@ -110,21 +110,11 @@ export class SalesScanner {
           if (sb.validSale && sb.tokenId !== undefined) {
             // if token does not exist on db yet,
             // get token info and add token to db
-            const t = await SalesScanner.processToken(logger, metrics, sb.tokenId)
+            SalesScanner.processToken(logger, metrics, sb, utxo)
 
-            if (t.valid) {
-              const sale = await SalesScanner.createValidSale(logger, sb, t)
-              // add to db under active sales
-              await addOrReactivateSale(sale)
-              // add to activeSales list
-              this.ActiveSalesUnderAllSa.push(sale.boxId!)
-            } else {
-              logger.next({ message: "token was invalid!", token_id: t.tokenId, box_id:utxo.boxId })
-              this.OmittedSales.push(utxo.boxId)
-            }
           } else {
             logger.next({ message: "box was not a valid sale box!", box_id: utxo.boxId })
-            this.OmittedSales.push(utxo.boxId);
+            SalesScanner.OmittedSales.push(utxo.boxId);
           }
         } catch (error) {
           logger.next({ message: "failed to decode utxo box", level: "error", error: error, box_id: utxo.boxId })
@@ -133,10 +123,14 @@ export class SalesScanner {
     }
   }
 
-  private static async processToken(logger: any, metrics: any, tokenId: string): Promise<Token> {
-    const token = new Token(tokenId)
+  public static async processToken(logger: any, metrics: any, saleBox: SaleBox, utxo: any): Promise<void> {
+    if (saleBox.tokenId === undefined) {
+      logger.next({ message: "token was undefined", token_id: saleBox.tokenId, box_id: saleBox.boxId })
+      return
+    }
+    const token = new Token(saleBox.tokenId)
 
-    if (await checkTokenExistsOnDb(tokenId)) {
+    if (await checkTokenExistsOnDb(saleBox.tokenId)) {
       token.existsOnDb = true
       token.valid = true
     } else {
@@ -146,13 +140,13 @@ export class SalesScanner {
       if (token.valid) {
         const ret = await addTokenToDb(token)
         if (typeof ret !== "undefined") {
-          logger.next({ message: "failed to add token to db", level: "error", error: ret.message, token_id: tokenId })
+          logger.next({ message: "failed to add token to db", level: "error", error: ret.message, token_id: saleBox.tokenId })
         } else {
-          logger.next({ message: "token added to db!", token_id: tokenId })
+          logger.next({ message: "token added to db!", token_id: saleBox.tokenId })
           if (token.royaltiesV2Array.length > 0) {
             const ret = await addRoyaltiesToDb(token)
             if (typeof ret !== "undefined") {
-              logger.next({ message: "failed to add token royalties to db", level: "error", error: ret.message, token_id: tokenId })
+              logger.next({ message: "failed to add token royalties to db", level: "error", error: ret.message, token_id: saleBox.tokenId })
             }
           }
           metrics.next({ name: "newTokenSuccessCounter", labels: [`${token.collectionSysName}`, `${token.tokenTypeStr}`]})
@@ -162,10 +156,19 @@ export class SalesScanner {
         metrics.next({ name: "newTokenFailedCounter", labels: [`${token.collectionSysName}`, `${token.tokenTypeStr}`]})
       }
 
-      return token
     }
 
-    return token
+    if (token.valid) {
+      const sale = await SalesScanner.createValidSale(logger, saleBox, token)
+      // add to db under active sales
+      await addOrReactivateSale(sale)
+      // add to activeSales list
+      this.ActiveSalesUnderAllSa.push(sale.boxId!)
+    } else {
+      logger.next({ message: "token was invalid!", token_id: token.tokenId, box_id:utxo.boxId })
+      this.OmittedSales.push(utxo.boxId)
+    }
+
   }
 
   private static async createValidSale(logger: any, salebox: SaleBox, token: Token): Promise<Sale> {
@@ -235,7 +238,7 @@ export class SalesScanner {
       }
     })
 
-    this.ActiveSalesUnderAllSa = this.ActiveSalesUnderAllSa.filter((sale) => {
+    SalesScanner.ActiveSalesUnderAllSa = SalesScanner.ActiveSalesUnderAllSa.filter((sale) => {
       !inactiveSales.includes(sale)
     })
     activeSalesUnderSa = activeSalesUnderSa.filter((sale) => {
@@ -265,7 +268,7 @@ export class SalesScanner {
         const sb: SaleBox = SaleBox.decodeBox(logger, box)
         logger.next({ message: "inactive sales box decoded"})
 
-        for (const sa of this.SalesAddresses) {
+        for (const sa of SalesScanner.SalesAddresses) {
           if (sb.address === sa.address) {
             sb.salesAddress = sa
             // TODO: should we break here?

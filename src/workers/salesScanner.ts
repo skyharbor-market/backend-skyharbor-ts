@@ -71,7 +71,7 @@ const salesScanner = {
       }
       salesAddrs.rows.forEach((row) => {
         const sa = new SalesAddress(Number(row.id), row.address, row.currency, row.version, true)
-        scanner.SalesAddresses.push(sa)
+        SalesScanner.SalesAddresses.push(sa)
       })
 
       logger.next({ message: 'active sales addresses loaded', active_sales_count: salesAddrs.rows.length })
@@ -81,14 +81,14 @@ const salesScanner = {
   },
   async deactivateSalesNotOnActiveAddresses() {
     try {
-      await deactivateSalesNotOnActiveAddresses(scanner.SalesAddresses)
+      await deactivateSalesNotOnActiveAddresses(SalesScanner.SalesAddresses)
     } catch(error) {
       throw error
     }
   },
   async reactivateSalesOnActiveAddresses() {
     try {
-      await reactivateSalesOnActiveAddresses(scanner.SalesAddresses)
+      await reactivateSalesOnActiveAddresses(SalesScanner.SalesAddresses)
     } catch(error) {
       throw error
     }
@@ -100,7 +100,7 @@ const salesScanner = {
         throw new Error("getAllActiveSales() returned undefined")
       }
       activeSales.rows.forEach((row) => {
-        scanner.ActiveSalesUnderAllSa.push(row.box_id)
+        SalesScanner.ActiveSalesUnderAllSa.push(row.box_id)
       })
 
       logger.next({ message: 'loaded active sales from database', active_sales_count: activeSales.rows.length})
@@ -110,7 +110,7 @@ const salesScanner = {
   },
   async processNewSales() {
     try {
-      for (const sa of scanner.SalesAddresses) {
+      for (const sa of SalesScanner.SalesAddresses) {
         logger.next({ message: "processing sales address", sales_address: `${sa.address}` })
         const utxosForSa = await getAllUtxosByAddress(logger, sa.address)
         await scanner.processUtxosUnderSa(logger, metrics, utxosForSa, sa)
@@ -137,7 +137,7 @@ const salesScanner = {
             logger.next({ message: 'new block found', block_height: newBlock })
             currentHeight = newBlock
 
-            for (const sa of scanner.SalesAddresses) {
+            for (const sa of SalesScanner.SalesAddresses) {
               //TODO: need method to get utxo's under sa and store in local storage, so below 2 methods don't have to do it twice. implement below too.
               // this may already be done with utxos for sa and you forgot to remove todo idk
               const utxosForSa = await getAllUtxosByAddress(logger, sa.address)
@@ -166,11 +166,11 @@ const salesScanner = {
             }
           } else {
             // should be once every 20s if blockPollRate is 1 seconds, once every 20s is blockPollrate is 10s.
-            logger.next({ message: "Still alive, getting mempool utxo's", sales_addresses_length: scanner.SalesAddresses.length })
+            logger.next({ message: "Still alive, getting mempool utxo's", sales_addresses_length: SalesScanner.SalesAddresses.length })
             //for each sales address being tracked -
             // just process new utxo's in the mempool, add to sales.
 
-            for (const sa of scanner.SalesAddresses) {
+            for (const sa of SalesScanner.SalesAddresses) {
               const utxosMem = await redundancyGetUtxosMempoolOnly(logger, sa.address);
               await scanner.processUtxosUnderSa(logger, metrics, utxosMem, sa)
             }
