@@ -76,7 +76,7 @@ change 4 (remainder plus fee)
 */
 async function payTeam(origPayAmount: number, inputs: string[], nodeMainWalletAddr: string) {
 
-  logger.info({ message: "processing team payment txs", erg_total: origPayAmount })
+  logger.info({ message: "processing team payment txs", component: "sales-scanner", erg_total: origPayAmount })
   let payAmount: number = origPayAmount
 
   // take some erg for fee payment
@@ -91,12 +91,12 @@ async function payTeam(origPayAmount: number, inputs: string[], nodeMainWalletAd
   const requestArray: any[] = []
   const body: { [k: string]: any } = {}
 
-  logger.info({ message: "paying team and maintenance amount after fee and saving-for-future-tx's", erg_pay_amount: payAmount})
+  logger.info({ message: "paying team and maintenance amount after fee and saving-for-future-tx's", component: "sales-scanner", erg_pay_amount: payAmount})
 
   const maintPay: number = (SCANNER_MAINT_PERCENTAGE / 100) * payAmount
   const maintPayment = new PaymentData(SCANNER_MAINT_ADDRESS, maintPay)
 
-  logger.info({ message:"paying team wallet", wallet_address: SCANNER_MAINT_ADDRESS, erg_maint_amount: maintPay })
+  logger.info({ message:"paying team wallet", component: "sales-scanner", wallet_address: SCANNER_MAINT_ADDRESS, erg_maint_amount: maintPay })
   let totalToSend: number = maintPay
 
   awaitingPayments.push(maintPayment)
@@ -111,7 +111,7 @@ async function payTeam(origPayAmount: number, inputs: string[], nodeMainWalletAd
     // Math.floor will discard any fractional part, effectively rounding down
     const indivPay = Math.floor((percentage / 100) * teamPayAmount)
 
-    logger.info({ message: "paying team member", wallet_address: walletAddr, percentage: percentage, erg_amount: indivPay })
+    logger.info({ message: "paying team member", component: "sales-scanner", wallet_address: walletAddr, percentage: percentage, erg_amount: indivPay })
 
     totalToSend = totalToSend + indivPay
     const teamPayment = new PaymentData(walletAddr, indivPay)
@@ -120,7 +120,7 @@ async function payTeam(origPayAmount: number, inputs: string[], nodeMainWalletAd
     awaitingPayments.push(teamPayment)
   }
 
-  logger.info({ message: `original team and maintenance pay amount`, erg_total_amount: payAmount, erg_total_sent: totalToSend })
+  logger.info({ message: `original team and maintenance pay amount`, component: "sales-scanner", erg_total_amount: payAmount, erg_total_sent: totalToSend })
   const remainder: number = payAmount - totalToSend
 
   // need to manually create a change and fee box.
@@ -147,16 +147,16 @@ async function payTeam(origPayAmount: number, inputs: string[], nodeMainWalletAd
 
   const resp = await addInputsToTxBody(body, inputs)
   if (resp === null) {
-    logger.error({ message: "could not successfully add inputs to tx body, cancelling team pay.." })
+    logger.error({ message: "could not successfully add inputs to tx body, cancelling team pay..", component: "sales-scanner" })
     return
   }
 
-  logger.info({ message: "generating tx to pay team", body: body })
+  logger.info({ message: "generating tx to pay team", component: "sales-scanner", body: body })
 
   const txPayload = await generateTransaction(body)
 
   if (txPayload.hasOwnProperty("error")) {
-    logger.error({ message: "failed to generate tx from node", error: txPayload })
+    logger.error({ message: "failed to generate tx from node", component: "sales-scanner", error: txPayload })
     return
   }
 
@@ -170,14 +170,14 @@ async function payTeam(origPayAmount: number, inputs: string[], nodeMainWalletAd
     finalTotal = finalTotal + p.nanoErgAmount
   }
 
-  logger.info({ message: "sending transaction to pay team", erg_orig_amount: origPayAmount, erg_final_total: finalTotal, tx_payload: txPayload })
+  logger.info({ message: "sending transaction to pay team", component: "sales-scanner", erg_orig_amount: origPayAmount, erg_final_total: finalTotal, tx_payload: txPayload })
 
   if (process.env.NODE_ENV === 'production') {
     const txResp = await sendTransaction(txPayload)
     if (txResp.hasOwnProperty("error")) {
-      logger.error({ message: "Send tx failed!", error: txResp })
+      logger.error({ message: "Send tx failed!", component: "sales-scanner", error: txResp })
     } else {
-      logger.info({ message: "Team pay tx was successful!", tx_id: txResp})
+      logger.info({ message: "Team pay tx was successful!", component: "sales-scanner", tx_id: txResp})
     }
   }
 }
@@ -187,11 +187,11 @@ export async function checkBalancePayTeamWithInputLimit(nodeMainWalletAddr: stri
   try {
     walletBalance = await getConfirmedBalance()
   } catch(e) {
-    logger.error({ message: "Error occurred while checking balance", error: e })
+    logger.error({ message: "Error occurred while checking balance", component: "sales-scanner", error: e })
   }
 
   if (typeof walletBalance === "number") {
-    logger.info({ message: "wallet balance", balance: walletBalance })
+    logger.info({ message: "wallet balance", component: "sales-scanner", balance: walletBalance })
     if (walletBalance > SCANNER_DECIMAL_PAY_THRESHOLD) {
 
       let unspentUtxos = await getUnspentUtxos(-1,0)
@@ -212,10 +212,10 @@ export async function checkBalancePayTeamWithInputLimit(nodeMainWalletAddr: stri
                   boxIds.push(box.boxId)
                   balance = balance + Number(box.value)
                 } else {
-                  logger.info({ message: "box contains assets! cannot send", box_id: box.boxId, asset_count: box.assets.length })
+                  logger.info({ message: "box contains assets! cannot send", component: "sales-scanner", box_id: box.boxId, asset_count: box.assets.length })
                 }
               } else {
-                logger.info({ message: "assets property is missing from box" })
+                logger.info({ message: "assets property is missing from box", component: "sales-scanner" })
               }
             }
           }
@@ -223,7 +223,7 @@ export async function checkBalancePayTeamWithInputLimit(nodeMainWalletAddr: stri
           if (balance > MIN_NERG_TEAM_PAY_TOTAL) {
             const unlock = await unlockWallet()
             if (typeof unlock !== "string") {
-              logger.error({ message: "failed to unlock wallet", error: unlock.message })
+              logger.error({ message: "failed to unlock wallet", component: "sales-scanner", error: unlock.message })
               return
             }
 
@@ -231,11 +231,12 @@ export async function checkBalancePayTeamWithInputLimit(nodeMainWalletAddr: stri
 
             const lock = await lockWallet()
             if (typeof lock !== "string") {
-              logger.error({ message: "failed to lock wallet", error: lock.message })
+              logger.error({ message: "failed to lock wallet", component: "sales-scanner", error: lock.message })
             }
           } else {
             logger.info({
               message: "The utxos remaining have balance which is lower than minimum not sending..",
+              component: "sales-scanner",
               utxos_length: boxIds.length,
               erg_balance: balance,
               erg_min_team_pay_total: MIN_NERG_TEAM_PAY_TOTAL })
@@ -247,16 +248,17 @@ export async function checkBalancePayTeamWithInputLimit(nodeMainWalletAddr: stri
         }
 
       } else {
-        logger.error({ message: "Could not successfully get utxo's from node!", error: unspentUtxos.message })
+        logger.error({ message: "Could not successfully get utxo's from node!", component: "sales-scanner", error: unspentUtxos.message })
       }
     } else {
       logger.info({
         message: "balance is below decimal pay threshold, not sending funds",
+        component: "sales-scanner",
         team_wallet_balance: walletBalance,
         scanner_decimal_pay_threshold: SCANNER_DECIMAL_PAY_THRESHOLD })
     }
   } else {
-    logger.error({ message: "Could not successfully get balance from node!", error: walletBalance.message })
+    logger.error({ message: "Could not successfully get balance from node!", component: "sales-scanner", error: walletBalance.message })
   }
 
 }

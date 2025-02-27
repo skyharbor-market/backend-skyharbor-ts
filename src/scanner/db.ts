@@ -18,6 +18,7 @@ async function checkSaleExists(s: Sale): Promise<boolean> {
   } catch (e) {
     logger.error({
       message: "DB error in sales scanner",
+      component: "sales-scanner",
       error: e.message,
       query_text: dbQuery.text,
       query_values: dbQuery.values
@@ -44,6 +45,7 @@ async function getNumOfCollsUnderMintAddr(mintAddress: string): Promise<number |
   } catch (e) {
     logger.error({
       message: "DB error in sales scanner",
+      component: "sales-scanner",
       error: e.message,
       query_text: dbQuery.text,
       query_values: dbQuery.values
@@ -71,6 +73,7 @@ async function createUnverifiedCollection(mintAddress: string, unverifiedCollIma
   } catch (e) {
     logger.error({
       message: "DB error in sales scanner",
+      component: "sales-scanner",
       error: e.message,
       query_text: dbQuery.text,
       query_values: dbQuery.values
@@ -88,6 +91,7 @@ async function createUnverifiedCollection(mintAddress: string, unverifiedCollIma
     } catch (e) {
       logger.error({
         message: "DB error in sales scanner",
+        component: "sales-scanner",
         error: e.message,
         query_text: dbQuery.text,
         query_values: dbQuery.values
@@ -115,6 +119,7 @@ export async function getAllActiveSales(): Promise<QueryResult<any> | undefined>
   } catch (e) {
     logger.error({
       message: "DB error in sales scanner",
+      component: "sales-scanner",
       error: e.message,
       query_text: dbQuery.text,
       query_values: dbQuery.values
@@ -137,6 +142,7 @@ export async function getActiveSalesBySaId(saleAddrId: number): Promise<QueryRes
   } catch (e) {
     logger.error({
       message: "DB error in sales scanner",
+      component: "sales-scanner",
       error: e.message,
       query_text: dbQuery.text,
       query_values: dbQuery.values
@@ -159,6 +165,7 @@ export async function getAllInactiveSales(): Promise<QueryResult<any> | undefine
   } catch (e) {
     logger.error({
       message: "DB error in sales scanner",
+      component: "sales-scanner",
       error: e.message,
       query_text: dbQuery.text,
       query_values: dbQuery.values
@@ -181,6 +188,7 @@ export async function checkTokenExistsOnDb(tokenId: string): Promise<boolean> {
   } catch (e) {
     logger.error({
       message: "DB error in sales scanner",
+      component: "sales-scanner",
       error: e.message,
       query_text: dbQuery.text,
       query_values: dbQuery.values
@@ -238,6 +246,7 @@ export async function getActiveSalesAddresses(): Promise<QueryResult<any> | unde
   } catch (e) {
     logger.error({
       message: "DB error in sales scanner",
+      component: "sales-scanner",
       error: e.message,
       query_text: dbQuery.text,
       query_values: dbQuery.values
@@ -275,6 +284,7 @@ export async function getOrCreateCollectionsForMintAddress(token: Token): Promis
   } catch (e) {
     logger.error({
       message: "DB error in sales scanner",
+      component: "sales-scanner",
       error: e.message,
       query_text: dbQuery.text,
       query_values: dbQuery.values
@@ -325,6 +335,7 @@ export async function addOrReactivateSale(s: Sale): Promise<void> {
   } catch (e) {
     logger.error({
       message: "DB error in sales scanner",
+      component: "sales-scanner",
       error: e.message,
       query_text: dbQuery.text,
       query_values: dbQuery.values
@@ -358,6 +369,7 @@ export async function addTokenToDb(token: Token): Promise<Error | undefined> {
   } catch (e) {
     logger.error({
       message: "DB error in sales scanner",
+      component: "sales-scanner",
       error: e.message,
       query_text: dbQuery.text,
       query_values: dbQuery.values
@@ -398,6 +410,7 @@ export async function addRoyaltiesToDb(token: Token): Promise<Error | undefined>
   } catch (e) {
     logger.error({
       message: "DB error in sales scanner",
+      component: "sales-scanner",
       error: e.message,
       query_text: dbQuery.text,
       query_values: dbQuery.values
@@ -409,7 +422,7 @@ export async function addRoyaltiesToDb(token: Token): Promise<Error | undefined>
 }
 
 export async function writeFinishedSaleToDb(s: Sale): Promise<void> {
-  logger.info({ message: 'marking sale in db', sale_status: s.status, box_id: s.boxId })
+  logger.info({ message: 'marking sale in db', component: "sales-scanner", sale_status: s.status, box_id: s.boxId })
 
   const dbQuery: QueryConfig<any[]> = {
     text: "update public.sales set status = $1, buyer_address = $2, buyer_ergotree = $3, spent_tx = $4, box_json = $5 where box_id = $6",
@@ -421,6 +434,7 @@ export async function writeFinishedSaleToDb(s: Sale): Promise<void> {
   } catch (e) {
     logger.error({
       message: "DB error in sales scanner",
+      component: "sales-scanner",
       error: e.message,
       query_text: dbQuery.text,
       query_values: dbQuery.values
@@ -452,6 +466,7 @@ export async function batchMarkInactiveSalesBySaId(inactiveSales: string[], saId
   } catch (e) {
     logger.error({
       message: "DB error in sales scanner",
+      component: "sales-scanner",
       error: e.message,
       query_text: dbQuery.text,
       query_values: dbQuery.values
@@ -460,7 +475,7 @@ export async function batchMarkInactiveSalesBySaId(inactiveSales: string[], saId
 }
 
 export async function deactivateSalesNotOnActiveAddresses(salesAddresses: SalesAddress[]): Promise<void> {
-  logger.info({ message: "marking active sales on inactive addresses as 'salesAddressInactive'" })
+  logger.info({ message: "marking active sales on inactive addresses as 'salesAddressInactive'", component: "sales-scanner" })
 
   let dbQuery: QueryConfig<any[]>
 
@@ -484,6 +499,7 @@ export async function deactivateSalesNotOnActiveAddresses(salesAddresses: SalesA
   } catch (e) {
     logger.error({
       message: "DB error in sales scanner",
+      component: "sales-scanner",
       error: e.message,
       query_text: dbQuery.text,
       query_values: dbQuery.values
@@ -492,7 +508,7 @@ export async function deactivateSalesNotOnActiveAddresses(salesAddresses: SalesA
 }
 
 export async function reactivateSalesOnActiveAddresses(salesAddresses: SalesAddress[]): Promise<void> {
-  logger.info({ message: "marking 'salesAddressInactive' sales on active addresses as 'active'" })
+  logger.info({ message: "marking 'salesAddressInactive' sales on active addresses as 'active'", component: "sales-scanner" })
 
   let dbQuery: QueryConfig<any[]>
 
@@ -516,6 +532,7 @@ export async function reactivateSalesOnActiveAddresses(salesAddresses: SalesAddr
   } catch (e) {
     logger.error({
       message: "DB error in sales scanner",
+      component: "sales-scanner",
       error: e.message,
       query_text: dbQuery.text,
       query_values: dbQuery.values
@@ -526,7 +543,7 @@ export async function reactivateSalesOnActiveAddresses(salesAddresses: SalesAddr
 export async function insertNftPostMint(filename: string, nftName: string, imageFileName: string, nftMetadata: string,
   mintToAddress: string, mintWalletAddress: string, ipfsLink: string, mintIndex: number, pinataRc: string,
   nodeRequestStr: string, nodeRespCodeStr: string, tokenId: string, table: string, mintTx: string): Promise<void> {
-  logger.info({ message: "recording status of mint", tx_id: nodeRespCodeStr })
+  logger.info({ message: "recording status of mint", tx_id: nodeRespCodeStr, component: "sales-scanner" })
 
   const dbQuery: QueryConfig<any[]> = {
     text: `INSERT INTO public.$1 (filename, nft_name, image_name, metadata, mint_to_address, current_address, minted_on, ipfs_url,
@@ -554,6 +571,7 @@ export async function insertNftPostMint(filename: string, nftName: string, image
   } catch (e) {
     logger.error({
       message: "DB error in sales scanner",
+      component: "sales-scanner",
       error: e.message,
       query_text: dbQuery.text,
       query_values: dbQuery.values

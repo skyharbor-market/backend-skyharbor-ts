@@ -2,8 +2,8 @@ import morgan from "morgan"
 import logger from "../logger"
 
 const stream = {
-  write: (message: any) => logger.info(message),
-}
+  write: (message: any) => logger.info({ message: message, component: "backend-api" }),
+};
 
 const skip = () => {
   // const env = process.env.NODE_ENV || "development"

@@ -15,9 +15,13 @@ const NODE_API_KEY = process.env.NODE_API_KEY || ""
 const NODE_WALLET_PASS = process.env.NODE_WALLET_PASS || ""
 
 async function getRequest(url: any, apiKey = '') {
-    return await get(NODE_BASE_URL + url, apiKey).then(res => {
+    try {
+      const res = await get(NODE_BASE_URL + url, apiKey)
       return { data: res }
-    })
+    } catch(e) {
+      logger.error({ message: "node rest get request failed", url: url, error: e})
+      return { data: e }
+    }
 }
 
 async function postRequest(url: any, body = {}, apiKey = '') {
@@ -25,7 +29,7 @@ async function postRequest(url: any, body = {}, apiKey = '') {
       const res = await post(NODE_BASE_URL + url, body, apiKey)
       return { data: res }
     } catch(e) {
-      logger.error({ message: "rest post request failed", body: body, url: url, error: e})
+      logger.error({ message: "node rest post request failed", body: body, url: url, error: e})
       return { data: e }
     }
 }

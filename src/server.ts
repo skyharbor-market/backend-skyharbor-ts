@@ -126,7 +126,7 @@ const ePayPool = new Pool({
 // if (process.env.NODE_ENV !== 'test') {
 //   globalThis.queuedJobs = []
 //   globalThis.pgboss = new PgBoss(`postgres://${apiKeyUser}:${apiKeyUserPass}@${DB_HOST_ADDR}/apikeys`)
-//   globalThis.pgboss.on('error', error => logger.error(error))
+//   globalThis.pgboss.on('error', error => logger.error({ message: error, component: "backend-api" }))
 //   globalThis.pgboss.start().then(async () => {
 //     let count = 0
 //     const jobs = await getQueuedJobs('subscription-tasks')
@@ -134,7 +134,7 @@ const ePayPool = new Pool({
 //       count = jobs.length
 //       globalThis.queuedJobs = jobs
 //     }
-//     logger.info({ message: "pgboss started", queued_jobs: count })
+//     logger.info({ message: "pgboss started", component: "backend-api", queued_jobs: count })
 //   })
 
 //   globalThis.pgboss.work('subscription-tasks', { newJobCheckIntervalSeconds: 300 }, async (job: any) => {
@@ -150,6 +150,7 @@ const ePayPool = new Pool({
 //     }
 //     logger.info({
 //       message: "job from subscription-tasks queue completed",
+//       component: "backend-api",
 //       task: job.data.task,
 //       subscription_id: job.data.subscription_id
 //     })
@@ -204,8 +205,8 @@ export default app;
 export const siteApiPool = sApiPool;
 export const ergoPayPool = ePayPool;
 export const consts = (async () => {
-  logger.info("Initialising necessary memory from db...")
+  logger.info({ message: "Initialising necessary memory from db...", component: "backend-api" })
   const c = await initConsts();
-  if (c !== undefined) { logger.info("db mem loaded!") }
+  if (c !== undefined) { logger.info({ message: "db mem loaded!", component: "backend-api" }) }
   return c
 })();

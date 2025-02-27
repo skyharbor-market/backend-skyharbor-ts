@@ -69,11 +69,12 @@ export async function addSubscriptionTask(subId: string, task: string, runAt: nu
     globalThis.queuedJobs.push(jobId)
     logger.info({
       message: "pg task scheduled",
+      component: "backend-api",
       job_id: jobId,
       task: task
     })
   } else {
-    logger.error("failed to schedule pg task")
+    logger.error({ message: "failed to schedule pg task", component: "backend-api" })
   }
 }
 
@@ -82,13 +83,13 @@ export async function removeSubscriptionTask(subId: string) {
     const job: any = await globalThis.pgboss.getJobById(jobId)
     if (job?.data.subscription_id === subId) {
       await globalThis.pgboss.cancel(jobId)
-      logger.info({ message: "scheduled task bas been cancelled", job_id: jobId, task: job.data.task })
+      logger.info({ message: "scheduled task bas been cancelled", component: "backend-api", job_id: jobId, task: job.data.task })
       globalThis.queuedJobs.splice(idx, 1)
       return true
     }
   })
   if (!found) {
-    logger.error({ message: "scheduled task not found", subscription_id: subId })
+    logger.error({ message: "scheduled task not found", component: "backend-api", subscription_id: subId })
   }
 }
 
@@ -106,6 +107,7 @@ export async function getQueuedJobs(queueName: string): Promise<string[] | undef
   } catch (e) {
     logger.error({
       message: "error getting job ids from pgboss schema",
+      component: "backend-api",
       error: e.message,
       query_text: dbQuery.text,
       query_values: dbQuery.values
@@ -130,8 +132,8 @@ export async function saveApiKey(hash: string, prefix: string, user: string, tie
     text: `
       insert into keys (hash, prefix, "user", status, plan_tier, create_time, expire_time) values
         ($1, $2, $3, $4, $5, current_timestamp, current_timestamp + (2678400 * interval \'1 second\'))
-      on conflict on constraint keys_user_key 
-      do update set 
+      on conflict on constraint keys_user_key
+      do update set
         hash = $1,
         prefix = $2,
         plan_tier = $5,
@@ -147,6 +149,7 @@ export async function saveApiKey(hash: string, prefix: string, user: string, tie
   } catch (e) {
     logger.error({
       message: "error inserting new api key into keys DB table",
+      component: "backend-api",
       error: e.message,
       query_text: dbQuery.text,
       query_values: dbQuery.values
@@ -171,6 +174,7 @@ export async function updateApiKeyWithUser(user: string, priceId: string) {
   } catch (e) {
     logger.error({
       message: "error updating plan_tier into keys DB table using user",
+      component: "backend-api",
       error: e.message,
       query_text: dbQuery.text,
       query_values: dbQuery.values
@@ -197,6 +201,7 @@ export async function updateApiKeyWithSubscription(subId: string, priceId: strin
   } catch (e) {
     logger.error({
       message: "error updating plan_tier into keys DB table using subscription id",
+      component: "backend-api",
       error: e.message,
       query_text: dbQuery.text,
       query_values: dbQuery.values
@@ -217,6 +222,7 @@ export async function updateApiUserWithCustomerAndSub(user: string, custId: stri
   } catch (e) {
     logger.error({
       message: "error updating stripe_customer_id and stripe_subscription_id into api_users DB table",
+      component: "backend-api",
       error: e.message,
       query_text: dbQuery.text,
       query_values: dbQuery.values
@@ -240,6 +246,7 @@ export async function deactivateSubscriptionApiKey(subId: string) {
   } catch (e) {
     logger.error({
       message: "error changing plan_tier from keys DB table",
+      component: "backend-api",
       error: e.message,
       query_text: dbQuery.text,
       query_values: dbQuery.values
@@ -260,6 +267,7 @@ export async function clearSubsciptionApiKey(subId: string) {
   } catch (e) {
     logger.error({
       message: "error clearing stripe_subscription_id from api_users DB table",
+      component: "backend-api",
       error: e.message,
       query_text: dbQuery.text,
       query_values: dbQuery.values
@@ -280,6 +288,7 @@ export async function clearCustomerApiUser(custId: string) {
   } catch (e) {
     logger.error({
       message: "error clearing stripe_customer_id from api_users DB table",
+      component: "backend-api",
       error: e.message,
       query_text: dbQuery.text,
       query_values: dbQuery.values
@@ -323,6 +332,7 @@ export async function setTokenPlanLimits(hash: string, tiers: any, oldLimits?: K
   } catch (e) {
     logger.error({
       message: "error inserting key_limits into DB",
+      component: "backend-api",
       error: e.message,
       hash: hash,
       query_text: dbQuery.text,
@@ -344,6 +354,7 @@ export async function deleteTokenPlanLimits(oldHash: string) {
   } catch (e) {
     logger.error({
       message: "error deleting row(s) from key_limits table",
+      component: "backend-api",
       error: e.message,
       old_hash: oldHash,
       query_text: dbQuery.text,
@@ -367,6 +378,7 @@ export async function getTokenPlanLimits(hash: string): Promise<KeyLimit[] | und
   } catch (e) {
     logger.error({
       message: "error getting key_limits from DB",
+      component: "backend-api",
       error: e.message,
       hash: hash,
       query_text: dbQuery.text,
@@ -399,6 +411,7 @@ export async function updateLastUsedTime(hash: string) {
   } catch (e) {
     logger.error({
       message: "error updating DB for last_used_time column in keys table",
+      component: "backend-api",
       error: e.message,
       query_text: dbQuery.text,
       query_values: dbQuery.values
@@ -418,6 +431,7 @@ export async function getApiKeyByUser(user: string): Promise<ApiKey | undefined>
   } catch (e) {
     logger.error({
       message: "error querying DB for all api key columns in keys table by user",
+      component: "backend-api",
       error: e.message,
       query_text: dbQuery.text,
       query_values: dbQuery.values
@@ -454,6 +468,7 @@ export async function getApiKeyByPrefix(pFix: string): Promise<ApiKey | DBError>
   } catch (e) {
     logger.error({
       message: "error querying DB for all api key columns in keys table by prefix",
+      component: "backend-api",
       error: e.message,
       query_text: dbQuery.text,
       query_values: dbQuery.values
@@ -490,6 +505,7 @@ export async function getApiUser(user: string): Promise<ApiUser | undefined> {
   } catch (e) {
     logger.error({
       message: "error querying DB for all api user columns in api_users table",
+      component: "backend-api",
       error: e.message,
       query_text: dbQuery.text,
       query_values: dbQuery.values
@@ -525,6 +541,7 @@ export async function getTierPlan(priceId: string): Promise<string> {
   } catch (e) {
     logger.error({
       message: "error getting plan_tiers from DB",
+      component: "backend-api",
       error: e.message,
       price_id: priceId,
       query_text: dbQuery.text,
@@ -553,6 +570,7 @@ export async function checkKeyPrefix(prefix: string): Promise<boolean | number> 
   } catch (e) {
     logger.error({
       message: "error querying DB for prefix column in keys table",
+      component: "backend-api",
       error: e.message,
       query_text: dbQuery.text,
       query_values: dbQuery.values
@@ -579,6 +597,7 @@ export async function getStripeCustomer(user: string): Promise<string | undefine
   } catch (e) {
     logger.error({
       message: "error querying DB for stripe_customer_id column in api_users table",
+      component: "backend-api",
       error: e.message,
       query_text: dbQuery.text,
       query_values: dbQuery.values

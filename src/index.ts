@@ -27,7 +27,7 @@ const port = normalizePort(process.env.PORT || "8080");
 app.on("error", onError);
 
 export const server = app.listen(Number(port), host, async () => {
-  logger.info(`listening on port ${port}!`);
+  logger.info({ message: `listening on port ${port}`, component: "backend-api" });
 });
 
 declare global {
@@ -68,10 +68,10 @@ function onError(error: any) {
   // handle specific listen errors with friendly messages
   switch (error.code) {
     case "EACCES":
-      logger.error(`${bind} requires elevated privileges`);
+      logger.error({ message: `${bind} requires elevated privileges`, component: "backend-api" });
       process.exit(1);
     case "EADDRINUSE":
-      logger.error(`${bind} is already in use`);
+      logger.error({ message: `${bind} is already in use`, component: "backend-api" });
       process.exit(1);
     default:
       throw error;
@@ -83,7 +83,8 @@ function onError(error: any) {
   globalThis.ssWorker = await spawn<SSWorker>(new Worker("./workers/salesScanner.ts"));
   try {
     globalThis.ssWorker.values().subscribe((log: any) => {
-      logger.info(log);
+      // logger.info(log);
+      logger.info(Object.assign({}, { component: "sales-scanner" }, log));
     });
     globalThis.ssWorker.metrix().subscribe((event: any) => {
       // TODO: figure out a better way to do this
@@ -99,28 +100,40 @@ function onError(error: any) {
     try {
       await globalThis.ssWorker.init();
     } catch (error) {
-      logger.error("failed to create sales scanner worker:", error);
+      logger.error({
+        message: `failed to create sales scanner worker: ${error.message}`,
+        component: "sales-scanner",
+      });
       throw error;
     }
 
     try {
       await globalThis.ssWorker.loadActiveSalesAddresses();
     } catch (error) {
-      logger.error("failed to load active sales addresses:", error);
+      logger.error({
+        message: `failed to load active sales addresses: ${error.message}`,
+        component: "sales-scanner",
+      });
       throw error;
     }
 
     try {
       await globalThis.ssWorker.deactivateSalesNotOnActiveAddresses();
     } catch (error) {
-      logger.error("failed to deactivate sales not on active addresses:", error);
+      logger.error({
+        message: `failed to deactivate sales not on active addresses: ${error.message}`,
+        component: "sales-scanner",
+      });
       throw error;
     }
 
     try {
       await globalThis.ssWorker.reactivateSalesOnActiveAddresses();
     } catch (error) {
-      logger.error("failed to reactivate sales on active addresses:", error);
+      logger.error({
+        message: `failed to reactivate sales on active addresses: ${error.message}`,
+        component: "sales-scanner",
+      });
       throw error;
     }
 
@@ -128,7 +141,10 @@ function onError(error: any) {
     try {
       await globalThis.ssWorker.getPastProcessedActiveBoxes();
     } catch (error) {
-      logger.error("failed to get past processed active boxes:", error);
+      logger.error({
+        message: `failed to get past processed active boxes - ${error.message}`,
+        component: "sales-scanner",
+      });
       throw error;
     }
 
@@ -136,7 +152,10 @@ function onError(error: any) {
     try {
       await globalThis.ssWorker.processNewSales();
     } catch (error) {
-      logger.error("failed to process new sale(s):", error);
+      logger.error({
+        message: `failed to process new sale(s) - ${error.message}`,
+        component: "sales-scanner",
+      });
       throw error;
     }
 
@@ -153,18 +172,27 @@ function onError(error: any) {
     try {
       await globalThis.ssWorker.processInactiveSales();
     } catch (error) {
-      logger.error("failed to process inactive sales:", error);
+      logger.error({
+        message: `failed to process inactive sales - ${error.message}`,
+        component: "sales-scanner",
+      });
       throw error;
     }
 
     try {
       await globalThis.ssWorker.scannerLoop();
     } catch (error) {
-      logger.error("infinite scanner loop errored:", error);
+      logger.error({
+        message: `infinite scanner loop errored - ${error.message}`,
+        component: "sales-scanner",
+      });
       throw error;
     }
   } catch (error) {
-    logger.error("sales scanner worker thread errored:", error);
+    logger.error({
+      message: `sales scanner worker thread errored - ${error.message}`,
+      component: "sales-scanner",
+    });
   } finally {
     globalThis.ssWorker.finish();
     await Thread.terminate(globalThis.ssWorker);
