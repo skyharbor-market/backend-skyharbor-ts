@@ -183,9 +183,15 @@ async function payTeam(origPayAmount: number, inputs: string[], nodeMainWalletAd
 }
 
 export async function checkBalancePayTeamWithInputLimit(nodeMainWalletAddr: string): Promise<void> {
-  const walletBalance = await getConfirmedBalance()
+  let walletBalance: number | Error = 0
+  try {
+    walletBalance = await getConfirmedBalance()
+  } catch(e) {
+    logger.error({ message: "Error occurred while checking balance", error: e })
+  }
 
   if (typeof walletBalance === "number") {
+    logger.info({ message: "wallet balance", balance: walletBalance })
     if (walletBalance > SCANNER_DECIMAL_PAY_THRESHOLD) {
 
       let unspentUtxos = await getUnspentUtxos(-1,0)

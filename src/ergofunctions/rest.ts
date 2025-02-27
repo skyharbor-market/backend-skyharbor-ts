@@ -29,7 +29,7 @@ export async function get(url: any, apiKey = '') {
     const json = await result.json()
     return json
   } catch (e) {
-    logger.error({ message: "rest get call failed", url: url, error: e })
+    logger.error({ message: "rest get call failed", url: url, error: e.message })
     if (e.message === "Response status: 503") {
       throw e
     }

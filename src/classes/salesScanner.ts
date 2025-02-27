@@ -261,12 +261,17 @@ export class SalesScanner {
     const removeInactive: string[] = []
     // check all unspent UTXO's against activeSales list
     for (const boxId of inactiveSales) {
-      const box = await boxByBoxId(boxId.box_id)
+      let box: any = {}
+      try {
+        box = await boxByBoxId(boxId.box_id)
+      } catch(e) {
+        logger.next({ message: "error while retrieving info on inactive sale with box id", box_id: boxId.box_id, error: e.message })
+      }
       if (Object.keys(box).length > 0 || box.length > 0) {
 
         // TODO: we already most of the sales' info on db... got to be a better way of doing this that doesn't decode the whole sale box again
         const sb: SaleBox = SaleBox.decodeBox(logger, box)
-        logger.next({ message: "inactive sales box decoded"})
+        logger.next({ message: "inactive sales box decoded", box_id: boxId.box_id})
 
         for (const sa of SalesScanner.SalesAddresses) {
           if (sb.address === sa.address) {
@@ -276,13 +281,13 @@ export class SalesScanner {
         }
 
         const s: Sale = await Sale.CreateValidSale(logger, sb)
-        logger.next({ message: "inactive sales details got"})
+        logger.next({ message: "inactive sales details got" })
 
         await writeFinishedSaleToDb(s)
 
         removeInactive.push(boxId.box_id)
       } else {
-        logger.next({ message: "could not retrieve info on inactive sale with box id", box_id: boxId.box_id})
+        logger.next({ message: "could not retrieve info on inactive sale with box id", box_id: boxId.box_id })
       }
     }
   }

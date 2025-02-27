@@ -132,6 +132,7 @@ export async function redundancyGetUtxosMempoolOnly(logger: any, address: string
       }
     } catch (err) {
       // TODO: implement retry count
+      logger.next({ message: "error getting unconfirmed UTXOs from mempool", error: err, explorer_endpoint: address })
       if (err.message === "Response status: 503") {
         // delay retry
         logger.next({ message: `external API call returned status 503 delaying retry for ${HTTP_503_WAIT_TIME_MS}ms`, explorer_endpoint: address })
@@ -214,6 +215,9 @@ export function boxById(id: any, api = explorerApiV1) {
 }
 
 export async function boxByBoxId(id: any) {
+  if (id === null || id === undefined) {
+    return Promise.resolve({})
+  }
   return getRequest(`/boxes/${id}`, explorerApiV1)
 }
 
