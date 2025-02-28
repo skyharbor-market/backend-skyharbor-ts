@@ -61,7 +61,7 @@ if (LOKI_ENABLED) {
     basicAuth: (LOKI_USERNAME !== '' && LOKI_PASSWORD !== '') ? `${LOKI_USERNAME}:${LOKI_PASSWORD}` : undefined,
     labels: labels,
     format: format,
-    timeout: 30000,
+    timeout: 120000,
     clearOnError: true,
     onConnectionError: (err) => console.error(err)
   }))
