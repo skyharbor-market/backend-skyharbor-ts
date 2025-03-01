@@ -83,8 +83,11 @@ function onError(error: any) {
   globalThis.ssWorker = await spawn<SSWorker>(new Worker("./workers/salesScanner.ts"));
   try {
     globalThis.ssWorker.values().subscribe((log: any) => {
-      // logger.info(log);
-      logger.info(Object.assign({}, { component: "sales-scanner" }, log));
+      try {
+        logger.info(Object.assign({}, { component: "sales-scanner" }, log));
+      } catch (error) {
+        console.error("sales scanner failed to log message", error);
+      }
     });
     globalThis.ssWorker.metrix().subscribe((event: any) => {
       // TODO: figure out a better way to do this
@@ -189,6 +192,7 @@ function onError(error: any) {
       throw error;
     }
   } catch (error) {
+    console.error("sales scanner worker thread errored", error);
     logger.error({
       message: `sales scanner worker thread errored - ${error.message}`,
       component: "sales-scanner",

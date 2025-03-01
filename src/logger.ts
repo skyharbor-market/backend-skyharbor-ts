@@ -63,7 +63,7 @@ if (LOKI_ENABLED) {
     format: format,
     timeout: 120000,
     clearOnError: true,
-    onConnectionError: (err) => console.error(err)
+    onConnectionError: (err) => console.error("Loki connection error", err)
   }))
 }
 
