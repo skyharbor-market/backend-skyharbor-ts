@@ -2,7 +2,7 @@ import winston from 'winston'
 import os from 'os'
 import * as dotenv from "dotenv"
 import path from "path"
-import LokiTransport from 'winston-loki'
+import LokiTransport from 'winston-loki-v2'
 
 const envFilePath = path.resolve(process.cwd(), './.env')
 dotenv.config({ path: envFilePath })
