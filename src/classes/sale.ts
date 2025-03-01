@@ -50,7 +50,7 @@ export class Sale extends SaleBox {
 
     // if sale is complete
     if (saleBox.spent) {
-      sale.updateSaleAfterSpend(logger)
+      await sale.updateSaleAfterSpend(logger)
     } else {
       sale.status = "active"
     }
@@ -81,7 +81,14 @@ export class Sale extends SaleBox {
     logger.next({ message: "box is spent! decoding spending result, sale or cancel...", box_id: this.boxId })
 
     //get details on the tx from the API
-    const tx = await txById(this.spentTx)
+    let tx
+    try {
+      tx = await txById(this.spentTx)
+    } catch(error) {
+      logger.next({ message: "failed to get tx details", level: "error", error: error.message, tx_id: this.spentTx })
+      this.status = "inactive"
+      return
+    }
     logger.next(Object.assign({}, { message: "tx" }, tx))
 
     let outputCount: number = 0

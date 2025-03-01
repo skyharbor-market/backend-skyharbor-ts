@@ -117,7 +117,7 @@ export class SalesScanner {
             SalesScanner.OmittedSales.push(utxo.boxId);
           }
         } catch (error) {
-          logger.next({ message: "failed to decode utxo box", level: "error", error: error, box_id: utxo.boxId })
+          logger.next({ message: "failed to decode utxo box", level: "error", error: error.message, box_id: utxo.boxId })
         }
       }
     }
@@ -135,7 +135,12 @@ export class SalesScanner {
       token.valid = true
     } else {
       token.existsOnDb = false
-      await token.getInfoOnSelf(logger)
+      try {
+        await token.getInfoOnSelf(logger)
+      } catch (error) {
+        logger.next({ message: "failed to get token info", level: "error", error: error.message, token_id: saleBox.tokenId })
+        return
+      }
 
       if (token.valid) {
         const ret = await addTokenToDb(token)
@@ -270,7 +275,13 @@ export class SalesScanner {
       if (Object.keys(box).length > 0 || box.length > 0) {
 
         // TODO: we already most of the sales' info on db... got to be a better way of doing this that doesn't decode the whole sale box again
-        const sb: SaleBox = SaleBox.decodeBox(logger, box)
+        let sb: SaleBox
+        try {
+          sb = SaleBox.decodeBox(logger, box)
+        } catch (error) {
+          logger.next({ message: "error while decoding inactive sales box", box_id: boxId.box_id, error: error.message })
+          continue
+        }
         logger.next({ message: "inactive sales box decoded", box_id: boxId.box_id})
 
         for (const sa of SalesScanner.SalesAddresses) {
@@ -280,9 +291,14 @@ export class SalesScanner {
           }
         }
 
-        const s: Sale = await Sale.CreateValidSale(logger, sb)
+        let s: Sale
+        try {
+          s = await Sale.CreateValidSale(logger, sb)
+        } catch(error) {
+          logger.next({ message: "error while creating sale from inactive sales box", sales_box_address: sb.salesAddress, error: error.message })
+          continue
+        }
         logger.next({ message: "inactive sales details got" })
-
         await writeFinishedSaleToDb(s)
 
         removeInactive.push(boxId.box_id)

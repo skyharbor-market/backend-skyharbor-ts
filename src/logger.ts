@@ -53,6 +53,10 @@ const logger = winston.createLogger({
   transports,
 })
 
+logger.on('error', (error) => {
+  console.error('Logger error:', error);
+})
+
 if (LOKI_ENABLED) {
   logger.add(new LokiTransport({
     host: LOKI_ENDPOINT,
