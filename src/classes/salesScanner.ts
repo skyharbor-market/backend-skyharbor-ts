@@ -107,7 +107,7 @@ export class SalesScanner {
           const sb: SaleBox = SaleBox.decodeBox(logger, utxo)
           sb.salesAddress = salesAddr
 
-          if (sb.validSale && sb.tokenId !== undefined) {
+          if (sb.validSale && typeof sb.tokenId !== "undefined") {
             // if token does not exist on db yet,
             // get token info and add token to db
             SalesScanner.processToken(logger, metrics, sb, utxo)
