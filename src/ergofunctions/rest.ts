@@ -30,7 +30,7 @@ export async function get(url: any, apiKey = '') {
     return json
   } catch (e) {
     logger.error({ message: "rest get call failed", url: url, error: e.message })
-    if (e.message === "Response status: 503") {
+    if (e.message === "Response status: 503" || e.message === "Response status: 504" || e.message === "Response status: 520") {
       throw e
     }
     return []

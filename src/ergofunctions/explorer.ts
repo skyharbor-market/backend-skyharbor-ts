@@ -11,6 +11,8 @@ const envFilePath = path.resolve(process.cwd(), './.env')
 dotenv.config({ path: envFilePath })
 
 const HTTP_503_WAIT_TIME_MS = Number(process.env.HTTP_503_WAIT_TIME_MS) || 60000
+const HTTP_504_WAIT_TIME_MS = Number(process.env.HTTP_504_WAIT_TIME_MS) || 10000
+const HTTP_520_WAIT_TIME_MS = Number(process.env.HTTP_520_WAIT_TIME_MS) || 10000
 
 const explorer = Explorer.mainnet;
 export const explorerApi = 'https://api.ergoplatform.com/api/v0'
@@ -75,10 +77,18 @@ export async function getAllUtxosByAddress(logger: any, address: string): Promis
       }
     } catch (err) {
       // TODO: implement retry count
+      logger.next({ message: `external API call returned ${err.message}`, explorer_endpoint: address })
       if (err.message === "Response status: 503") {
         // delay retry
-        logger.next({ message: `external API call returned status 503 delaying retry for ${HTTP_503_WAIT_TIME_MS}ms`, explorer_endpoint: address })
         await sleep(HTTP_503_WAIT_TIME_MS)
+        continue
+      } else if (err.message === "Response status: 504") {
+        // delay retry
+        await sleep(HTTP_504_WAIT_TIME_MS)
+        continue
+      } else if (err.message === "Response status: 520") {
+        // delay retry
+        await sleep(HTTP_520_WAIT_TIME_MS)
         continue
       } else {
         break
@@ -101,10 +111,18 @@ export async function getAllUtxosByAddress(logger: any, address: string): Promis
       }
     } catch (err) {
       // TODO: implement retry count
+      logger.next({ message: `external API call returned ${err.message}`, explorer_endpoint: address })
       if (err.message === "Response status: 503") {
         // delay retry
-        logger.next({ message: `external API call returned status 503 delaying retry for ${HTTP_503_WAIT_TIME_MS}ms`, explorer_endpoint: address })
         await sleep(HTTP_503_WAIT_TIME_MS)
+        continue
+      } else if (err.message === "Response status: 504") {
+        // delay retry
+        await sleep(HTTP_504_WAIT_TIME_MS)
+        continue
+      } else if (err.message === "Response status: 520") {
+        // delay retry
+        await sleep(HTTP_520_WAIT_TIME_MS)
         continue
       } else {
         break

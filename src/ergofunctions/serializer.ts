@@ -190,7 +190,7 @@ export async function decodeArtwork(box: any, tokenId: any, considerArtist = tru
 
       inf.artist = await getArtist(tokBox)
     } catch (e) {
-      logger.error({ message: "error getting artist data", error: e})
+      logger.error({ message: "error getting artist data", error: e.message})
     }
   }
   if (considerArtist) {
