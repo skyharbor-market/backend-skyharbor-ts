@@ -274,7 +274,7 @@ export async function getOrCreateCollectionsForMintAddress(token: Token): Promis
 
   let dbResp: QueryResult<any> | undefined
   const dbQuery: QueryConfig<any[]> = {
-    text: 'select collection from public.mint_addresses WHERE address = $1',
+    text: 'select distinct collection from public.mint_addresses WHERE address = $1',
     values: [`${token.mintAddress}`]
   }
   const possibleCollections: string[] = []
