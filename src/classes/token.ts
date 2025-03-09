@@ -135,58 +135,64 @@ export class Token {
 
         // get royalty info
         const preMintBox = await boxByBoxId(this.tokenId)
+
+        // apply royalty if proper registers are present
         if (Object.keys(preMintBox).length > 0 || preMintBox.length > 0) {
           // boxId == token_id
           logger.next(Object.assign({}, { message: "preMintBox" }, preMintBox))
 
-          if (Object.keys(preMintBox.additionalRegisters).length > 0) {
-            // check for R4 and R5 registers
-            const regs: string[] = ["R4", "R5"]
-            for (const r of regs) {
-              if (!preMintBox.additionalRegisters.hasOwnProperty(r)) {
-                logger.next({
-                  message: `register ${r} is missing for box id`,
-                  box_id: this.creationBox,
-                  additional_registers: preMintBox.additionalRegisters
-                })
-                return
-              }
-            }
+          let royaltyValueInt: number = 0
 
-            let royaltyValueInt: number = 0
+          if (Object.keys(preMintBox.additionalRegisters).length > 0 && preMintBox.additionalRegisters.hasOwnProperty("R4")) {
+
             // try and get R4 for royalty value
             try {
               // Handle V1 of the Artwork Standard - https://github.com/ergoplatform/eips/blob/master/eip-0024.md
-              if (preMintBox.additionalRegisters.R4.sigmaType === "Int" ||
-                (preMintBox.additionalRegisters.R4.sigmaType === "SInt" && preMintBox.additionalRegisters.R5.sigmaType !== "Coll[(Coll[SByte], SInt)]")) {
+              if (!preMintBox.additionalRegisters.hasOwnProperty("R5") &&
+                  (preMintBox.additionalRegisters.R4.sigmaType === "Int" ||
+                    preMintBox.additionalRegisters.R4.sigmaType === "SInt")) {
                 royaltyValueInt = Number(preMintBox.additionalRegisters.R4.renderedValue)
                 // check for valid royalty amount, between 0 and 200 inclusive.
                 if (royaltyValueInt >= 0 && royaltyValueInt <= 200) {
                   this.royalties = true
                   this.royaltyValue = royaltyValueInt
-                  this.royaltyErgoTree = preMintBox.additionalRegisters.R5.renderedValue
-                  try {
-                    this.royaltyAddress = await ergoTreeToAddress(this.royaltyErgoTree)
-                  } catch (e) {
-                    logger.next({
-                      message: "failed to get box id R5 royalty address",
-                      error: e.message,
-                      level: "error",
-                      box_id: this.creationBox,
-                      token_id: this.tokenId,
-                      roy_ergotree: this.royaltyErgoTree,
-                      R4: preMintBox.additionalRegisters.R4,
-                      R5: preMintBox.additionalRegisters.R5
-                    })
-                    return
-                  }
 
                   // convert V1 royalty standard to fit V2 so we can add them to the royalties db table later
-                  const royalty = [this.royaltyAddress, this.royaltyErgoTree, this.royaltyValue]
+                  const royalty = [this.royaltyAddress, "", this.royaltyValue]
                   this.royaltiesV2Array.push(royalty)
                 }
+              } // V1 standard with R5 present
+              else if (preMintBox.additionalRegisters.hasOwnProperty("R5") &&
+                       preMintBox.additionalRegisters.R4.sigmaType === "Int" ||
+                       (preMintBox.additionalRegisters.R4.sigmaType === "SInt" && preMintBox.additionalRegisters.R5.sigmaType !== "Coll[(Coll[SByte], SInt)]")) {
+                // check for valid royalty amount, between 0 and 200 inclusive.
+                if (royaltyValueInt >= 0 && royaltyValueInt <= 200) {
+                 this.royalties = true
+                 this.royaltyValue = royaltyValueInt
+                 this.royaltyErgoTree = preMintBox.additionalRegisters.R5.renderedValue
+                 try {
+                   this.royaltyAddress = await ergoTreeToAddress(this.royaltyErgoTree)
+                 } catch (e) {
+                   logger.next({
+                     message: "failed to get box id R5 royalty address",
+                     error: e.message,
+                     level: "error",
+                     box_id: this.creationBox,
+                     token_id: this.tokenId,
+                     roy_ergotree: this.royaltyErgoTree,
+                     R4: preMintBox.additionalRegisters.R4,
+                     R5: preMintBox.additionalRegisters.R5
+                   })
+                   return
+                 }
+
+                 // convert V1 royalty standard to fit V2 so we can add them to the royalties db table later
+                 const royalty = [this.royaltyAddress, this.royaltyErgoTree, this.royaltyValue]
+                 this.royaltiesV2Array.push(royalty)
+                }
               } // V2 of the Artwork Standard
-              else if (preMintBox.additionalRegisters.R4.sigmaType === "SInt" && preMintBox.additionalRegisters.R4.renderedValue === "2") {
+              else if (preMintBox.additionalRegisters.hasOwnProperty("R5") &&
+                       preMintBox.additionalRegisters.R4.sigmaType === "SInt" && preMintBox.additionalRegisters.R4.renderedValue === "2") {
                 if (preMintBox.additionalRegisters.R5.renderedValue !== "[]") {
                   // need to convert a string representation of a 2 dimensional array
                   this.royalties = true
@@ -218,10 +224,14 @@ export class Token {
                   }
 
                   this.royaltiesV2Array = royaltyArray
+                } else {
+                  // no royalties
+                  this.royalties = false
+                  this.royaltyValue = royaltyValueInt
                 }
               } else {
                 logger.next({
-                  message: "unknown artwork type based on register R4",
+                  message: "artwork does not follow the V1 or V2 standards",
                   box_id: this.creationBox,
                   additional_registers: preMintBox.additionalRegisters
                 })
@@ -238,6 +248,10 @@ export class Token {
               })
               return
             }
+          } else {
+            // no royalties
+            this.royalties = false
+            this.royaltyValue = royaltyValueInt
           }
 
           // get mint address
@@ -259,6 +273,8 @@ export class Token {
               return
             }
           }
+        } else {
+          logger.next({ message: "Could not find a valid pre mint box for token", token_id: this.tokenId })
         }
       }
     }
