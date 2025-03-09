@@ -87,7 +87,7 @@ export class Token {
       this.eipType = tokenInfo.type
 
       const boxInfo = await boxByBoxId(this.creationBox)
-      logger.next(Object.assign({}, {message: "boxinfo"}, boxInfo))
+      logger.next(Object.assign({}, {message: "boxinfo", "creation_box": this.creationBox}, boxInfo))
 
       if (Object.keys(boxInfo).length > 0 || boxInfo.length > 0) {
 
@@ -142,7 +142,7 @@ export class Token {
           if (Object.keys(preMintBox.additionalRegisters).length > 0) {
             // check for R4 and R5 registers
             const regs: string[] = ["R4", "R5"]
-            regs.forEach((r) => {
+            for (const r of regs) {
               if (!preMintBox.additionalRegisters.hasOwnProperty(r)) {
                 logger.next({
                   message: `register ${r} is missing for box id`,
@@ -151,7 +151,7 @@ export class Token {
                 })
                 return
               }
-            })
+            }
 
             let royaltyValueInt: number = 0
             // try and get R4 for royalty value
@@ -170,7 +170,7 @@ export class Token {
                   } catch (e) {
                     logger.next({
                       message: "failed to get box id R5 royalty address",
-                      error: e,
+                      error: e.message,
                       level: "error",
                       box_id: this.creationBox,
                       token_id: this.tokenId,
@@ -204,7 +204,7 @@ export class Token {
                     } catch (e) {
                       logger.next({
                         message: "failed to get box id R5 royalty address",
-                        error: e,
+                        error: e.message,
                         level: "error",
                         box_id: this.creationBox,
                         token_id: this.tokenId,
@@ -230,7 +230,7 @@ export class Token {
             } catch (e) {
               logger.next({
                 message: "failed to get box id R4 royalty value",
-                error: e,
+                error: e.message,
                 level: "error",
                 box_id: this.creationBox,
                 R4: preMintBox.additionalRegisters.R4,

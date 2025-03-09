@@ -170,7 +170,7 @@ export class SalesScanner {
       // add to activeSales list
       this.ActiveSalesUnderAllSa.push(sale.boxId!)
     } else {
-      logger.next({ message: "token was invalid!", token_id: token.tokenId, box_id:utxo.boxId })
+      logger.next({ message: "token was invalid!", token_id: token.tokenId, box_id: utxo.boxId })
       this.OmittedSales.push(utxo.boxId)
     }
 
