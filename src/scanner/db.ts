@@ -340,6 +340,7 @@ export async function addOrReactivateSale(s: Sale): Promise<void> {
       query_text: dbQuery.text,
       query_values: dbQuery.values
     })
+    throw e
   }
 }
 

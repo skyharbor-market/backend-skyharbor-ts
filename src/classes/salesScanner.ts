@@ -146,6 +146,9 @@ export class SalesScanner {
         const ret = await addTokenToDb(token)
         if (typeof ret !== "undefined") {
           logger.next({ message: "failed to add token to db", level: "error", error: ret.message, token_id: saleBox.tokenId })
+          metrics.next({ name: "newTokenFailedCounter", labels: [`${token.collectionSysName}`, `${token.tokenTypeStr}`]})
+          // if we fail to add token to db, we should not proceed with adding royalties or creating a sale
+          return
         } else {
           logger.next({ message: "token added to db!", token_id: saleBox.tokenId })
           if (token.royaltiesV2Array.length > 0) {
@@ -179,11 +182,16 @@ export class SalesScanner {
           token_id: token.tokenId,
           box_id: utxo.boxId })
       }
-      // add to activeSales list
-      this.ActiveSalesUnderAllSa.push(sale.boxId!)
+      // add to activeSales list if it is not currently present
+      if (!this.ActiveSalesUnderAllSa.includes(sale.boxId!)) {
+        this.ActiveSalesUnderAllSa.push(sale.boxId!)
+      }
     } else {
       logger.next({ message: "token was invalid!", token_id: token.tokenId, box_id: utxo.boxId })
-      this.OmittedSales.push(utxo.boxId)
+      // add to omitted sales list if it is not currently present
+      if (!this.OmittedSales.includes(utxo.boxId)) {
+        this.OmittedSales.push(utxo.boxId)
+      }
     }
 
   }
