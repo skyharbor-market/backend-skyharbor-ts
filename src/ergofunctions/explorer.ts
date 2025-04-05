@@ -77,7 +77,7 @@ export async function getAllUtxosByAddress(logger: any, address: string): Promis
       }
     } catch (err) {
       // TODO: implement retry count
-      logger.next({ message: `external API call returned ${err.message}`, explorer_endpoint: address })
+      logger.next({ message: `external API call returned ${err.message}`, address: address })
       if (err.message === "Response status: 503") {
         // delay retry
         await sleep(HTTP_503_WAIT_TIME_MS)
@@ -111,7 +111,7 @@ export async function getAllUtxosByAddress(logger: any, address: string): Promis
       }
     } catch (err) {
       // TODO: implement retry count
-      logger.next({ message: `external API call returned ${err.message}`, explorer_endpoint: address })
+      logger.next({ message: `external API call returned ${err.message}`, address: address })
       if (err.message === "Response status: 503") {
         // delay retry
         await sleep(HTTP_503_WAIT_TIME_MS)

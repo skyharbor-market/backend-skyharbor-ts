@@ -260,7 +260,7 @@ export class Token {
 
           if (issuingBox !== null) {
             this.mintAddress = issuingBox.address
-            logger.next({ message: "found mint address", mint_address: this.mintAddress })
+            logger.next({ message: "found mint address", mint_address: this.mintAddress, token_id: this.tokenId })
 
             //get info on collection from database
             await this.getCollectionName(logger)

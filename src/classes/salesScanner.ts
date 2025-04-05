@@ -165,8 +165,20 @@ export class SalesScanner {
 
     if (token.valid) {
       const sale = await SalesScanner.createValidSale(logger, saleBox, token)
-      // add to db under active sales
-      await addOrReactivateSale(sale)
+      try {
+        // add to db under active sales
+        await addOrReactivateSale(sale)
+        logger.next({ message: "successfully added or updated sale to db",
+          creation_tx: sale.creationTx,
+          token_id: token.tokenId,
+          box_id: utxo.boxId })
+      } catch (error) {
+        logger.next({ message: "failed to add sale to db", level: "error",
+          error: error.message,
+          creation_tx: sale.creationTx,
+          token_id: token.tokenId,
+          box_id: utxo.boxId })
+      }
       // add to activeSales list
       this.ActiveSalesUnderAllSa.push(sale.boxId!)
     } else {
