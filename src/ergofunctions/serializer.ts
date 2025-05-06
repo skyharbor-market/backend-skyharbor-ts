@@ -7,6 +7,9 @@ import { Address, AddressKind } from "@coinbarn/ergo-ts/dist/models/address"
 import { boxById, getIssuingBox, txById } from "./explorer"
 import { supportedCurrencies } from "./consts"
 import { getForKey } from "./helpers"
+import { ErgoBox } from "@coinbarn/ergo-ts";
+import axios from "axios";
+import logger from '../logger'
 // const {getEncodedBox}  = require( "./assembler");
 // import {addNFTInfo, getNFTInfo} from "./dbUtils";
 
@@ -36,6 +39,18 @@ export async function decodeLongTuple(val: any) {
 export async function encodeNum(n: any, isInt = false) {
   if (isInt) return (await ergolib).Constant.from_i32(n).encode_to_base16()
   else return (await ergolib).Constant.from_i64((await ergolib).I64.from_str(n)).encode_to_base16()
+}
+
+export async function encodeContract(address: any) {
+  const tmp = (await ergolib).Contract.pay_to_address((await ergolib).Address.from_base58(address))
+  return tmp.ergo_tree().to_base16_bytes();
+}
+
+export async function ergoTreeToAddress(ergoTree: any) {
+  //console.log("ergoTreeToAddress",ergoTree);
+  const ergoT = (await ergolib).ErgoTree.from_base16_bytes(ergoTree);
+  const address = (await ergolib).Address.recreate_from_ergo_tree(ergoT);
+  return address.to_base58((await ergolib).NetworkPrefix.Mainnet)
 }
 
 export async function decodeNum(n: any, isInt = false) {
@@ -175,7 +190,7 @@ export async function decodeArtwork(box: any, tokenId: any, considerArtist = tru
 
       inf.artist = await getArtist(tokBox)
     } catch (e) {
-      console.error(e)
+      logger.error({ message: "error getting artist data", error: e.message})
     }
   }
   if (considerArtist) {
@@ -287,4 +302,49 @@ export function isNatural(num: any) {
 
 export function isP2pkAddr(tree: any) {
   return Address.fromErgoTree(tree).getType() === AddressKind.P2PK
+}
+
+
+export async function getEncodedBoxSer(box: ErgoBox) {
+  const bytes = (await ergolib).ErgoBox.from_json(JSON.stringify(box)).sigma_serialize_bytes();
+  let hexString = toHexString(bytes)
+  return "63" + hexString
+}
+
+
+export interface RoyaltyInterface {
+    artist: string | null;
+    royalty: number | null;
+  }
+
+export async function getRoyaltyInfo(tokenId: string) {
+  let tempItem: RoyaltyInterface = {
+    artist: null,
+    royalty: null,
+  }
+  const tokBox = await axios
+    .get(`https://api.ergoplatform.com/api/v1/boxes/${tokenId}`)
+    .catch((error) => {
+      logger.error({ message: "Error while getting box ID.", error: error})
+      //boxById(tokenId).catch(error => {
+      return null
+    })
+
+  tempItem.royalty = 0
+  try {
+    if (tokBox?.data.additionalRegisters.R4) {
+      tempItem.royalty = parseInt(
+        tokBox.data.additionalRegisters.R4["renderedValue"]
+      ); //await decodeNum(tokBox.data.additionalRegisters.R4, true);
+      if (tempItem.royalty > 900) {
+        logger.info({ message: "Royalty is over 90%, reducing down to 0%" })
+        tempItem.royalty = 0
+      }
+      tempItem.artist = tokBox.data.address //await getArtist(tokBox.data);
+    }
+  } catch {
+    logger.error({ message: "Error While Decoding Artist Royalty Percentage - Royalty Set to 0" })
+    return null
+  }
+  return tempItem
 }

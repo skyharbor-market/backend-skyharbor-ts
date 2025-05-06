@@ -4,6 +4,7 @@ export const DEFAULT_SALES_QUERY_LIMIT = 1000
 
 import { FieldDef, PoolClient, QueryResult } from "pg";
 import { siteApiPool } from "../server"
+import logger from "../logger"
 
 export async function initConsts(): Promise<{
   collCols: FieldDef[];
@@ -48,11 +49,14 @@ async function getCollections(): Promise<QueryResult<any>> {
         .query(queryText)
         .then((res: QueryResult<any>) => {
           release();
-          console.log("query text: " + queryText);
+          logger.info({
+            message: "db call",
+            query_text: queryText,
+          })
           resolve(res);
         })
         .catch((e: any) => {
-          console.error(e.stack)
+          logger.error(e.stack)
         })
 
     })

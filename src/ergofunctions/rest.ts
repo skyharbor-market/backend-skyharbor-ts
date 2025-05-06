@@ -1,4 +1,5 @@
 import fetch from "node-fetch"
+import logger from '../logger'
 
 export async function post(url: any, body = {}, apiKey = '') {
   return await fetch(url, {
@@ -19,10 +20,19 @@ export async function get(url: any, apiKey = '') {
         'Content-Type': 'application/json',
         api_key: apiKey,
       }
-    }).then(res => res.json())
-    return result
+    })
+
+    if (!result.ok) {
+      throw new Error(`Response status: ${result.status}`)
+    }
+
+    const json = await result.json()
+    return json
   } catch (e) {
-    console.error(e)
+    logger.error({ message: "rest get call failed", url: url, error: e.message })
+    if (e.message === "Response status: 503" || e.message === "Response status: 504" || e.message === "Response status: 520") {
+      throw e
+    }
     return []
   }
 }

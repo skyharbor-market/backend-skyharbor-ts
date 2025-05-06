@@ -14,6 +14,7 @@ import {
   ReducedTransaction,
   UnsignedTransaction
 } from "ergo-lib-wasm-nodejs"
+import logger from '../logger'
 
 const router = express.Router();
 
@@ -42,7 +43,7 @@ router.post('/saveTx', cors(options), async (req: Request, res: Response) => {
 
   if (typeof resp !== "undefined") {
 
-    console.log("resp: " + resp)
+    logger.info({ message: "ergopay saveTx called", response: resp, route: "/api/ergopay/saveTx" })
 
     if (typeof resp === "number") {
       if (resp === 400001) {
@@ -87,7 +88,14 @@ router.route("/setAddr/:uuid/:addr").get(cors(options), async (req: Request, res
   try {
     dbResp = await executeDBQuery(dbQuery);
   } catch (e) {
-    console.log("error saving ergopay wallet address to DB")
+    logger.error({
+      message: "error saving ergopay wallet address to DB",
+      db_query: dbQuery,
+      route: "/api/ergopay/setAddr/:uuid/:addr",
+      uuid: uuid,
+      address: addr,
+      error: e
+    })
     response.message = `error saving ergopay wallet address to DB`
     response.messageSeverity = Severity.ERROR
     res.status(200).json(response);
@@ -95,6 +103,13 @@ router.route("/setAddr/:uuid/:addr").get(cors(options), async (req: Request, res
   }
 
   if (typeof dbResp === "number") {
+    logger.error({
+      message: "error saving ergopay wallet address to DB",
+      db_query: dbQuery,
+      route: "/api/ergopay/setAddr/:uuid/:addr",
+      uuid: uuid,
+      address: addr
+    })
     response.message = `error saving ergopay wallet address to DB`
     response.messageSeverity = Severity.ERROR
     res.status(200).json(response);
@@ -121,22 +136,39 @@ router.route("/getWalletAddr/:uuid").get(cors(options), async (req: Request, res
   try {
     dbResp = await executeDBQuery(dbQuery);
   } catch (e) {
-    console.log("error getting client wallet address from DB")
+    logger.error({
+      message: "error getting client wallet address from DB",
+      db_query: dbQuery,
+      route: "/api/ergopay/getWalletAddr/:uuid",
+      uuid: uuid,
+      error: e
+    })
     res.status(200).json({ error: "error getting client wallet address from DB", walletAddr: "" });
     return
   }
 
   if (typeof dbResp === "number") {
+    logger.error({
+      message: "error getting client wallet address from DB",
+      db_query: dbQuery,
+      route: "/api/ergopay/getWalletAddr/:uuid",
+      uuid: uuid
+    })
     res.status(200).json({ error: "error getting client wallet address from DB", walletAddr: "" });
     return
   }
 
   if (dbResp.rows.length === 0) {
+    logger.error({
+      message: "client wallet address missing from DB",
+      db_query: dbQuery,
+      route: "/api/ergopay/getWalletAddr/:uuid",
+      uuid: uuid
+    })
     res.status(200).json({ error: `client wallet address for uuid ${uuid} is missing from DB`, walletAddr: "" });
     return
   }
 
-  console.log(dbResp)
   res.status(200).json({ error: "", walletAddr: dbResp.rows[0] });
 
 })
@@ -155,7 +187,14 @@ router.route("/getTx/:txId/:addr").get(cors(options), async (req: Request, res: 
   try {
     dbResp = await executeDBQuery(dbQuery);
   } catch (e) {
-    console.log("error getting txReducedB64safe from DB")
+    logger.error({
+      message: "error getting txReducedB64safe from DB",
+      db_query: dbQuery,
+      route: "/getTx/:txId/:addr",
+      tx_id: txId,
+      address: addr,
+      error: e
+    })
     response.message = `error getting txReducedB64safe from DB`
     response.messageSeverity = Severity.ERROR
     res.status(200).json(response);
@@ -163,6 +202,13 @@ router.route("/getTx/:txId/:addr").get(cors(options), async (req: Request, res: 
   }
 
   if (typeof dbResp === "number") {
+    logger.error({
+      message: "error getting txReducedB64safe from DB",
+      db_query: dbQuery,
+      route: "/getTx/:txId/:addr",
+      tx_id: txId,
+      address: addr
+    })
     response.message = `error getting txReducedB64safe from DB`
     response.messageSeverity = Severity.ERROR
     res.status(200).json(response);
@@ -170,13 +216,26 @@ router.route("/getTx/:txId/:addr").get(cors(options), async (req: Request, res: 
   }
 
   if (dbResp.rows.length === 0) {
+    logger.error({
+      message: "Tx missing from the DB",
+      db_query: dbQuery,
+      route: "/getTx/:txId/:addr",
+      tx_id: txId,
+      address: addr
+    })
     response.message = `Tx ${txId} is missing from the DB`
     response.messageSeverity = Severity.ERROR
     res.status(200).json(response);
     return
   }
 
-  console.log(dbResp)
+  logger.info({
+    message: "Tx found in DB",
+    db_resp: dbResp,
+    route: "/getTx/:txId/:addr",
+    tx_id: txId,
+    address: addr
+  })
   response.reducedTx = dbResp.rows[0].tx_data
   response.address = addr
   response.message = `Your NFT purchase is ready to be signed`
@@ -192,11 +251,15 @@ router.route("/signed").post(cors(options), async (req: Request, res: Response):
   let reply = {} as ErgoPayReply
   let dbResp: QueryResult<any> | number
 
-  console.log(req)
   try {
     reply = req.body as ErgoPayReply
   } catch (e) {
-    console.log("failed to parse ErgoPayReply")
+    logger.error({
+      message: "failed to parse ErgoPayReply",
+      request: req.body,
+      route: "/signed",
+      error: e
+    })
     response.message = `failed to parse ErgoPayReply, this doesn't mean your transaction failed.`
     response.messageSeverity = Severity.ERROR
     res.status(200).json(response);
@@ -211,7 +274,12 @@ router.route("/signed").post(cors(options), async (req: Request, res: Response):
   try {
     dbResp = await executeDBQuery(dbQuery);
   } catch (e) {
-    console.log("error updating signed column in DB")
+    logger.error({
+      message: "error updating signed column in DB",
+      db_query: dbQuery,
+      route: "/signed",
+      error: e
+    })
     response.message = `error updating signed column in DB`
     response.messageSeverity = Severity.ERROR
     res.status(200).json(response);
@@ -219,13 +287,17 @@ router.route("/signed").post(cors(options), async (req: Request, res: Response):
   }
 
   if (typeof dbResp === "number") {
+    logger.error({
+      message: "error updating signed column in DB",
+      db_query: dbQuery,
+      route: "/signed"
+    })
     response.message = `error updating signed column in DB`
     response.messageSeverity = Severity.ERROR
     res.status(200).json(response);
     return
   }
 
-  console.log(dbResp)
   response.message = `Thank you for your purchase!`
   response.messageSeverity = Severity.INFORMATION
   res.status(200).json(response);
@@ -239,8 +311,6 @@ async function executeDBQuery(query: QueryConfig<any[]>): Promise<QueryResult<an
     ergoPayPool.connect(async (err: Error, client: PoolClient, release: any) => {
       if (err) throw err;
 
-      console.log("query text: " + query);
-
       if (typeof query !== "number") {
         client
           .query(query)
@@ -250,7 +320,7 @@ async function executeDBQuery(query: QueryConfig<any[]>): Promise<QueryResult<an
           })
           .catch(e => {
             release();
-            console.error(e.stack)
+            logger.error({ message: "failed to execute DB query for ergopay", error: e.stack })
             resolve(500000);
           })
       } else { //rtn error code
@@ -270,8 +340,6 @@ async function saveTx(body: any, query: any): Promise<string | number> {
 
       let [txId, queryText] = await getTxDataQueryText(body, query);
 
-      console.log("query", queryText)
-
       if (typeof queryText !== "number") {
         // check if txId already exists in DB
         let res: QueryResult<any>
@@ -281,12 +349,12 @@ async function saveTx(body: any, query: any): Promise<string | number> {
           const vals = [`${txId}`]
           res = await client.query(q, vals)
           if (res.rowCount > 0) {
-            console.log("found duplicate(s) for txId: " + txId);
+            logger.info({ message: "found duplicate(s) for txId", tx_id: txId })
             release()
             resolve(txId)
           } else {
             // Add new reduced tx to DB
-            console.log("adding ergopay tx data for txId: " + txId);
+            logger.info({ message: "adding ergopay tx data for txId", tx_id: txId })
             client
               .query(queryText)
               .then(res => {
@@ -295,13 +363,13 @@ async function saveTx(body: any, query: any): Promise<string | number> {
               })
               .catch(e => {
                 release()
-                console.error(e.stack)
+                logger.error({ message: "failed to save ergopay tx to DB", error: e.stack})
                 resolve(500000)
               })
           }
         } catch (e) {
           release()
-          console.error(e.stack)
+          logger.error({ message: "failed to save ergopay tx to DB", error: e.stack })
           resolve(500000)
         }
       } else { //rtn error code
@@ -342,10 +410,6 @@ async function getTxDataQueryText(body: any, query: any): Promise<[string, Query
     const txReducedBase64 = Buffer.from(reducedTx.sigma_serialize_bytes()).toString('base64');    //byteArrayToBase64(reducedTx.sigma_serialize_bytes())
     const ergoPayTx = txReducedBase64.replace(/\//g, '_').replace(/\+/g, '-')
 
-    console.log("body.uuid", body.uuid)
-    console.log("ergoPayTx", ergoPayTx)
-    console.log("txId", txId)
-
     queryText = {
       text: 'insert into pay_requests values (default,$1,$2,current_timestamp,$3)',
       values: [`${body.uuid}`, `${ergoPayTx}`, `${txId}`],
@@ -361,8 +425,6 @@ router.post('/saveSession', async (req: Request, res: Response) => {
   var resp = await saveSession(req.body, req.query);
 
   if (typeof resp !== "undefined") {
-
-    console.log("resp: " + resp)
 
     if (typeof resp === "number") {
       if (resp === 400001) {
@@ -395,27 +457,25 @@ async function saveSession(body: any, query: any): Promise<QueryResult<any> | nu
   return new Promise(resolve => {
 
     ergoPayPool.connect(async (err: Error, client: PoolClient, release: any) => {
-      if (err) throw err;
+      if (err) throw err
 
-      let queryText = await getSaveSessionQueryText(body, query);
-
-      console.log("query text: " + queryText);
+      let queryText = await getSaveSessionQueryText(body, query)
 
       if (typeof queryText !== "number") {
         client
           .query(queryText)
           .then(res => {
-            release();
-            resolve(res);
+            release()
+            resolve(res)
           })
           .catch(e => {
-            release();
-            console.error(e.stack)
-            resolve(500000);
+            release()
+            logger.error({ message: "failed to save ergopay session to the DB", error: e.stack })
+            resolve(500000)
           })
       } else { //rtn error code
         release()
-        resolve(queryText);
+        resolve(queryText)
       }
     })
   });

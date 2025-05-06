@@ -29,4 +29,7 @@
     "./node_modules",
     "./node_modules/*",
   ],
+  "files": [
+    "src/types/express/index.d.ts"
+  ],
 }
