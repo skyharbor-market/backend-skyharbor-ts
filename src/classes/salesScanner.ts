@@ -172,12 +172,14 @@ export class SalesScanner {
         // add to db under active sales
         await addOrReactivateSale(sale)
         logger.next({ message: "successfully added or updated sale to db",
+          sales_status: sale.status,
           creation_tx: sale.creationTx,
           token_id: token.tokenId,
           box_id: utxo.boxId })
       } catch (error) {
         logger.next({ message: "failed to add sale to db", level: "error",
           error: error.message,
+          sales_status: sale.status,
           creation_tx: sale.creationTx,
           token_id: token.tokenId,
           box_id: utxo.boxId })
