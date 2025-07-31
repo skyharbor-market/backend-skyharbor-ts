@@ -30,7 +30,7 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
 
 const router = express.Router()
 
-const origins = ['https://skyharbor.io', 'https://www.skyharbor.io', 'http://localhost:3000', 'http://127.0.0.1:3000', 'https://testapi.skyharbor.io', 'https://api.skyharbor.io', 'https://skyharbor-git-development-enftexchange.vercel.app']
+const origins = ['https://skyharbor.io', 'https://www.skyharbor.io', 'https://v1.skyharbor.io' ,'https://www.v1.skyharbor.io', 'http://localhost:3000', 'http://127.0.0.1:3000', 'https://testapi.skyharbor.io', 'https://api.skyharbor.io', 'https://skyharbor-git-development-enftexchange.vercel.app']
 const options: cors.CorsOptions = {
   allowedHeaders: [
     'Origin',
