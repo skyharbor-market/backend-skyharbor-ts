@@ -87,6 +87,161 @@ export async function get_utxos(walletAddr: string, reqErg: any, tokenId = "", r
   return finalUtxos
 }
 
+export async function get_utxos_multi_address(walletAddresses: string[], reqErg: any, tokenId = "", reqtokenAmt = 0) {
+  const collectedBoxIds = new Set<string>()
+  const finalUtxos = []
+  let assets = []
+  let ergAmtRemainder = reqErg
+  let tokenAmtRemainder = reqtokenAmt
+  
+  console.log("get_utxos_multi_address called with", walletAddresses.length, "addresses")
+  console.log("reqErg", reqErg)
+  console.log("tokenId", tokenId)
+  console.log("reqtokenAmt", reqtokenAmt)
+
+  // If only one address provided, use original function for backward compatibility
+  if (walletAddresses.length === 1) {
+    return get_utxos(walletAddresses[0], reqErg, tokenId, reqtokenAmt)
+  }
+
+  // Iterate through all addresses to collect UTXOs
+  for (const walletAddr of walletAddresses) {
+    // Skip if we already have enough
+    if (ergAmtRemainder <= 0 && (tokenId === "" || tokenAmtRemainder <= 0)) {
+      break
+    }
+
+    console.log("Checking address:", walletAddr)
+    
+    // Get unspent boxes for this address
+    const unspent = await unspentBoxesForV1(walletAddr)
+    
+    if (!unspent || unspent.length === 0) {
+      console.log("No unspent boxes for address:", walletAddr)
+      continue
+    }
+
+    // Sort by value (highest first)
+    unspent.sort((a: { value: number }, b: { value: number }) => {
+      return b.value - a.value
+    })
+
+    // Process boxes from this address
+    for (let i = 0; i < unspent.length; i++) {
+      let box = unspent[i]
+      let addBox = false
+      assets = []
+
+      // Skip if we already have this box
+      if (collectedBoxIds.has(box.boxId)) {
+        continue
+      }
+
+      // Check for required ERG
+      if (ergAmtRemainder > 0) {
+        addBox = true
+      }
+
+      // Check for required token
+      if (tokenId !== "") {
+        for (let j = 0; j < box.assets.length; j++) {
+          let tok = box.assets[j]
+          if (tok.tokenId === tokenId && tokenAmtRemainder > 0) {
+            addBox = true
+            break
+          }
+        }
+      }
+
+      if (addBox) {
+        // Collect all assets from the box
+        for (let k = 0; k < box.assets.length; k++) {
+          let a = box.assets[k]
+          assets.push({
+            "tokenId": a.tokenId,
+            "amount": a.amount
+          })
+        }
+
+        // Add box to results and mark as collected
+        collectedBoxIds.add(box.boxId)
+        finalUtxos.push({
+          "boxId": box.boxId,
+          "value": box.value,
+          "ergoTree": box.ergoTree,
+          "creationHeight": box.creationHeight,
+          "assets": assets,
+          "additionalRegisters": box.additionalRegisters,
+          "transactionId": box.transactionId,
+          "index": box.index,
+          "extension": box.extension
+        })
+
+        // Update remaining requirements
+        ergAmtRemainder -= box.value
+        
+        // Update token requirements
+        for (let asset of box.assets) {
+          if (asset.tokenId === tokenId) {
+            tokenAmtRemainder -= asset.amount
+          }
+        }
+      }
+
+      // Check if we have enough
+      if (ergAmtRemainder <= 0 && (tokenId === "" || tokenAmtRemainder <= 0)) {
+        break
+      }
+    }
+  }
+
+  // Final check if we found enough
+  if ((tokenId !== "" && tokenAmtRemainder > 0) || ergAmtRemainder > 0) {
+    console.log("Not enough balance across all addresses. ERG needed:", ergAmtRemainder, "Token needed:", tokenAmtRemainder)
+    return []
+  }
+
+  console.log("Successfully collected", finalUtxos.length, "UTXOs from", collectedBoxIds.size, "unique boxes")
+  return finalUtxos
+}
+
+export async function collectRequiredInputs(userAddresses: string[], need: any, txFee: number) {
+  // This helper function replicates the common pattern used in transaction files
+  let have = JSON.parse(JSON.stringify(need))
+  have["ERG"] += txFee
+  let ins: any[] = []
+  const keys = Object.keys(have)
+
+  for (let i = 0; i < keys.length; i++) {
+    if (have[keys[i]] <= 0) continue
+    
+    let curIns: any[]
+    if (keys[i] === "ERG") {
+      curIns = await get_utxos_multi_address(userAddresses, have[keys[i]].toString())
+    } else {
+      curIns = await get_utxos_multi_address(userAddresses, 0, keys[i], have[keys[i]].toString())
+    }
+
+    if (curIns !== undefined && curIns.length > 0) {
+      curIns.forEach((bx: any) => {
+        have["ERG"] -= parseInt(bx.value)
+        bx.assets.forEach((ass: any) => {
+          if (!Object.keys(have).includes(ass.tokenId)) have[ass.tokenId] = 0
+          have[ass.tokenId] -= parseInt(ass.amount)
+        })
+      })
+      ins = ins.concat(curIns)
+    }
+  }
+  
+  // Check if we found enough
+  if (keys.filter(key => have[key] > 0).length > 0) {
+    return { success: false, inputs: [], have: have }
+  }
+
+  return { success: true, inputs: ins, have: have }
+}
+
 export function parseUtxo(json: any, addExtention = true, mode = 'input') {
   if (json === undefined) {
     return {};

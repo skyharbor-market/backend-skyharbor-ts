@@ -2,7 +2,7 @@ import { getListedBox } from "../helpers";
 import { txFee, CHANGE_BOX_ASSET_LIMIT } from "../consts";
 import { currentBlock } from "../explorer";
 import { encodeHex, getRoyaltyInfo, RoyaltyInterface } from "../serializer";
-import { get_utxos } from "../utxos";
+import { get_utxos, collectRequiredInputs } from "../utxos";
 import { addressIsValid } from "../../functions/validationChecks";
 import NftAsset from "../../interfaces/NftAsset";
 import { BuyBoxInterface } from "../../interfaces/BuyBox";
@@ -31,15 +31,19 @@ interface BuyInterface {
 export async function buyNFT({ buyBox, userAddresses }: BuyInterface) {
   const wasm = await ergolib;
 
-  // const buyer = await getConnectorAddress()
+  // Validate all addresses
+  for (const address of userAddresses) {
+    const isValidAdd = await addressIsValid(address);
+    if (!isValidAdd) {
+      console.log("invalid address:", address);
+      throw `Address ${address} is not valid`;
+    }
+  }
+  
+  // Use first address as the primary buyer address for outputs
   const buyer = userAddresses[0];
   console.log("buyer", buyer);
-
-  const isValidAdd = await addressIsValid(buyer);
-  if (!isValidAdd) {
-    console.log("invalid address");
-    throw "Address is not valid";
-  }
+  console.log("using", userAddresses.length, "addresses for inputs");
 
   const blockHeight = await currentBlock();
   let listedBox;
@@ -146,42 +150,15 @@ export async function buyNFT({ buyBox, userAddresses }: BuyInterface) {
     parseInt(buyerGets.value) +
     parseInt(feeBox.value);
   let need = { ERG: requiredErg };
-  // Get all wallet tokens/ERG and see if they have enough
-  let have = JSON.parse(JSON.stringify(need));
-  have["ERG"] += txFee;
-  let ins: any[] = [];
-  const keys = Object.keys(have);
-
-  for (let i = 0; i < keys.length; i++) {
-    if (have[keys[i]] <= 0) continue;
-    let curIns;
-
-    // iterate through all addresses - make sure no boxes are duplicated if boxes are found
-    //   for (let add of userAddresses) {
-    //   }
-
-    // Without dapp connector
-
-    if (keys[i] === "ERG") {
-      curIns = await get_utxos(buyer, have[keys[i]].toString());
-    } else {
-      curIns = await get_utxos(buyer, 0, keys[i], have[keys[i]].toString());
-    }
-
-    if (curIns !== undefined) {
-      curIns.forEach((bx) => {
-        have["ERG"] -= parseInt(bx.value);
-        bx.assets.forEach((ass) => {
-          if (!Object.keys(have).includes(ass.tokenId)) have[ass.tokenId] = 0;
-          have[ass.tokenId] -= parseInt(ass.amount);
-        });
-      });
-      ins = ins.concat(curIns);
-    }
-  }
-  if (keys.filter((key) => have[key] > 0).length > 0) {
+  // Get all wallet tokens/ERG from all addresses and see if they have enough
+  const inputResult = await collectRequiredInputs(userAddresses, need, txFee);
+  
+  if (!inputResult.success) {
     throw "Not enough balance in the wallet! See FAQ for more info";
   }
+  
+  const ins = inputResult.inputs;
+  const have = inputResult.have;
 
   console.log("test 3");
 

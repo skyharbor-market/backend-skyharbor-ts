@@ -3,7 +3,7 @@ import { txFee, supportedCurrencies, CHANGE_BOX_ASSET_LIMIT } from "../consts";
 import { min_value } from "../conf";
 import { currentBlock } from "../explorer";
 import { encodeNum } from "../serializer";
-import { get_utxos } from "../utxos";
+import { get_utxos, collectRequiredInputs } from "../utxos";
 import { BuyBoxInterface, EmptyBuyBoxInterface } from "../../interfaces/BuyBox";
 import { Request, Response } from "express";
 import { addressIsValid } from "../../functions/validationChecks";
@@ -37,13 +37,18 @@ export async function relist_NFT({
 }: RelistInterface) {
   const wasm = await ergolib;
 
-  const relister = userAddresses[0];
-  
-  const isValidAdd = await addressIsValid(relister);
-  if (!isValidAdd) {
-    console.log("invalid address");
-    throw "Address is not valid";
+  // Validate all addresses
+  for (const address of userAddresses) {
+    const isValidAdd = await addressIsValid(address);
+    if (!isValidAdd) {
+      console.log("invalid address:", address);
+      throw `Address ${address} is not valid`;
+    }
   }
+  
+  // Use first address as the primary relister address for outputs
+  const relister = userAddresses[0];
+  console.log("using", userAddresses.length, "addresses for relist");
 
   const blockHeight = await currentBlock();
 
@@ -72,38 +77,18 @@ export async function relist_NFT({
 
   const requiredErg = min_value + txFee;
   let need = { ERG: requiredErg };
-  // Get all wallet tokens/ERG and see if they have enough
-  let have = JSON.parse(JSON.stringify(need));
-  have["ERG"] += txFee - listedBox.value;
-
-  let ins: any = [];
-  const keys = Object.keys(have);
-
-  for (let i = 0; i < keys.length; i++) {
-    if (have[keys[i]] <= 0) continue;
-    let curIns;
-    // Without dapp connector
-    if (keys[i] === "ERG") {
-      curIns = await get_utxos(relister, have[keys[i]].toString());
-    } else {
-      curIns = await get_utxos(relister, 0, keys[i], have[keys[i]].toString());
-    }
-
-    if (curIns !== undefined) {
-      curIns.forEach((bx) => {
-        have["ERG"] -= parseInt(bx.value);
-        bx.assets.forEach((ass) => {
-          if (!Object.keys(have).includes(ass.tokenId)) have[ass.tokenId] = 0;
-          have[ass.tokenId] -= parseInt(ass.amount);
-        });
-      });
-      ins = ins.concat(curIns);
-    }
-  }
-
-  if (keys.filter((key) => have[key] > 0).length > 0) {
+  // Adjust for the listedBox value that will be used as input
+  const adjustedNeed = { ERG: requiredErg + txFee - listedBox.value };
+  
+  // Get all wallet tokens/ERG from all addresses and see if they have enough
+  const inputResult = await collectRequiredInputs(userAddresses, adjustedNeed, 0);
+  
+  if (!inputResult.success) {
     throw "Not enough balance in the wallet! See FAQ for more info";
   }
+  
+  const ins = inputResult.inputs;
+  const have = inputResult.have;
 
   // -----------Output boxes--------------
   let registers = {
