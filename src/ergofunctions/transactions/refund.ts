@@ -3,7 +3,7 @@ import { txFee, CHANGE_BOX_ASSET_LIMIT } from "../consts";
 import { min_value } from "../conf";
 import { currentBlock } from "../explorer";
 import { encodeHex } from "../serializer";
-import { get_utxos } from "../utxos";
+import { get_utxos, collectRequiredInputs } from "../utxos";
 import { BuyBoxInterface } from "../../interfaces/BuyBox";
 import { Request, Response } from "express";
 
@@ -26,7 +26,9 @@ interface RelistInterface {
 export async function refund({ cancelBox, userAddresses }: RelistInterface) {
   const wasm = await ergolib;
 
+  // Use first address as the primary refund issuer address for outputs
   const refundIssuer = userAddresses[0];
+  console.log("using", userAddresses.length, "addresses for refund");
   const blockHeight = await currentBlock();
 
 
@@ -93,42 +95,15 @@ export async function refund({ cancelBox, userAddresses }: RelistInterface) {
   // ***************** IF BOX DOES NOT HAVE ENOUGH TO COVER FEES, TAKE FEES FROM USER *****************
   else {
     let need = { ERG: min_value };
-    // Get all wallet tokens/ERG and see if they have enough
-    let have = JSON.parse(JSON.stringify(need));
-    have["ERG"] += txFee;
-    let ins: any = [];
-    const keys = Object.keys(have);
-
-    for (let i = 0; i < keys.length; i++) {
-      if (have[keys[i]] <= 0) continue;
-      let curIns;
-      // Without dapp connector
-      if (keys[i] === "ERG") {
-        curIns = await get_utxos(refundIssuer, have[keys[i]].toString());
-      } else {
-        curIns = await get_utxos(
-          refundIssuer,
-          0,
-          keys[i],
-          have[keys[i]].toString()
-        );
-      }
-
-      if (curIns !== undefined) {
-        curIns.forEach((bx) => {
-          have["ERG"] -= parseInt(bx.value);
-          bx.assets.forEach((ass) => {
-            if (!Object.keys(have).includes(ass.tokenId)) have[ass.tokenId] = 0;
-            have[ass.tokenId] -= parseInt(ass.amount);
-          });
-        });
-        ins = ins.concat(curIns);
-      }
-    }
-
-    if (keys.filter((key) => have[key] > 0).length > 0) {
+    // Get all wallet tokens/ERG from all addresses and see if they have enough
+    const inputResult = await collectRequiredInputs(userAddresses, need, txFee);
+    
+    if (!inputResult.success) {
       return "Not enough balance in the wallet! See FAQ for more info.";
     }
+    
+    const ins = inputResult.inputs;
+    const have = inputResult.have;
 
     console.log("ins", ins);
 

@@ -18,7 +18,7 @@ import NftAsset from "../../interfaces/NftAsset";
 
 // import { ErgoBox } from "ergo-lib-wasm-nodejs";
 import { ErgoBox } from "@coinbarn/ergo-ts";
-import { get_utxos } from "../utxos";
+import { get_utxos, collectRequiredInputs } from "../utxos";
 import { addressIsValid } from "../../functions/validationChecks";
 import { Error } from "../../classes/error";
 import { checkIfAssetsAreCorrect } from "../helpers";
@@ -50,12 +50,16 @@ interface RequestBody {
 
 export async function bulkList({ nfts, userAddresses }: BulkListInterface) {
   const wasm = await ergolib;
-  const seller = userAddresses[0];
-  const isValidAdd = await addressIsValid(seller);
-  if (!isValidAdd) {
-    console.log("invalid address");
-    throw "Address is not valid";
+  // Validate all addresses
+  for (const address of userAddresses) {
+    const isValidAdd = await addressIsValid(address);
+    if (!isValidAdd) {
+      console.log("invalid address:", address);
+      throw `Address ${address} is not valid`;
+    }
   }
+  // Use first address as the primary address for outputs
+  const seller = userAddresses[0];
   const blockHeight = await currentBlock();
 
   let nft: NftAsset;
@@ -66,60 +70,15 @@ export async function bulkList({ nfts, userAddresses }: BulkListInterface) {
     need[nft.id] = 1;
   }
 
-  // Get all wallet tokens/ERG and see if they have enough
-  let have = JSON.parse(JSON.stringify(need));
-  // have["ERG"] += listingFee * nfts.length;
-  let ins: any = [];
-  const keys = Object.keys(have);
-
-  //   const allBal = await getTokens();
-  //   if (
-  //     keys
-  //       .filter((key) => key !== "ERG")
-  //       .filter(
-  //         (key) =>
-  //           !Object.keys(allBal).includes(key) || allBal[key].amount < have[key]
-  //       ).length > 0
-  //   ) {
-  //     showMsg("Not enough balance in the wallet! See FAQ for more info.", true);
-  //     return;
-  //   }
-
-  for (let i = 0; i < keys.length; i++) {
-    if (have[keys[i]] <= 0) continue;
-    // const curIns = await ergo.get_utxos(have[keys[i]].toString(), keys[i]);
-    // console.log("bx", await ergo.get_utxos())
-    // console.log("have[keys[i]].toString(): ", have[keys[i]].toString(), keys[i])
-
-    // iterate through all addresses - make sure no boxes are duplicated if boxes are found
-    // for(let add of userAddresses) {
-
-    // }
-
-    // Without dapp connector
-    let curIns;
-    if (keys[i] === "ERG") {
-      curIns = await get_utxos(seller, have[keys[i]].toString());
-    } else {
-      curIns = await get_utxos(seller, 0, keys[i], have[keys[i]].toString());
-    }
-
-    if (curIns !== undefined) {
-      //@ts-ignore
-      curIns.forEach((bx: ErgoBox) => {
-        //@ts-ignore
-        have["ERG"] -= parseInt(bx.value);
-        bx.assets.forEach((ass) => {
-          if (!Object.keys(have).includes(ass.tokenId)) have[ass.tokenId] = 0;
-          have[ass.tokenId] -= parseInt(ass.amount);
-        });
-      });
-      ins = ins.concat(curIns);
-    }
-  }
-  if (keys.filter((key) => have[key] > 0).length > 0) {
+  // Get all wallet tokens/ERG from all addresses and see if they have enough
+  const inputResult = await collectRequiredInputs(userAddresses, need, txFee);
+  
+  if (!inputResult.success) {
     return "Not enough balance in the wallet! See FAQ for more info.";
   }
+  
+  const ins = inputResult.inputs;
+  const have = inputResult.have;
   let publicKeyResponse = await axios
     .get(`${nodeUrl}/utils/addressToRaw/` + seller)
     .catch((err) => {
