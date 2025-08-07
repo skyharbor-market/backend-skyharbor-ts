@@ -1,4 +1,4 @@
-import express from "express";
+import express, { Request, Response } from "express";
 import cors from "cors";
 import { postBuyNFT } from "../../ergofunctions/transactions/buyNFT";
 import { postBulkList } from "../../ergofunctions/transactions/bulkList";
@@ -23,7 +23,9 @@ const corsOptions: cors.CorsOptions = {
 };
 
 // Handle OPTIONS preflight requests
-router.options('*', cors(corsOptions));
+router.options('*', cors(corsOptions), async (req: Request, res: Response) => {
+  res.status(200).send();
+});
 
 // Eventually add API caching for speed, and API keys for usage
 
