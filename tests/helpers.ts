@@ -5,16 +5,16 @@ import { QueryConfig, QueryResult } from "pg"
 import { executeDBQuery, updateLastUsedTime } from "../src/api/utils/db"
 import { rateLimiterPgMiddleware } from "../src/middlewares/rateLimiterPg"
 import apiKeysRouter from "../src/api/apiKeys.route"
-import { testApiKeyUserPass } from "../src/consts/users"
+// import { testApiKeyUserPass } from "../src/consts/users"
 import { testPool } from './pools'
 
-const createUserQuery = `
-  GRANT CONNECT ON DATABASE test_apikeys TO postgres;
-  CREATE USER test_apikeys with encrypted password '${testApiKeyUserPass}';
-  GRANT CONNECT ON DATABASE test_apikeys TO test_apikeys;
-  GRANT ALL privileges on DATABASE test_apikeys to test_apikeys;
-  ALTER USER test_apikeys WITH SUPERUSER;
-`
+// const createUserQuery = `
+//   GRANT CONNECT ON DATABASE test_apikeys TO postgres;
+//   CREATE USER test_apikeys with encrypted password '${testApiKeyUserPass}';
+//   GRANT CONNECT ON DATABASE test_apikeys TO test_apikeys;
+//   GRANT ALL privileges on DATABASE test_apikeys to test_apikeys;
+//   ALTER USER test_apikeys WITH SUPERUSER;
+// `
 
 const createApiUsersTable = `
   CREATE TABLE IF NOT EXISTS api_users (
@@ -142,66 +142,66 @@ const createPlanTiers = `
   INSERT INTO plan_tiers (name) VALUES ('enterprise');
 `
 
-export async function runMigrations(): Promise<string | undefined> {
-  const createDB: QueryConfig<any[]> = {
-    text: 'CREATE DATABASE test_apikeys',
-    values: []
-  }
+// export async function runMigrations(): Promise<string | undefined> {
+//   const createDB: QueryConfig<any[]> = {
+//     text: 'CREATE DATABASE test_apikeys',
+//     values: []
+//   }
 
-  const createUser: QueryConfig<any[]> = {
-    text: `
-      ${createUserQuery}
-    `,
-    values: []
-  }
+//   const createUser: QueryConfig<any[]> = {
+//     text: `
+//       ${createUserQuery}
+//     `,
+//     values: []
+//   }
 
-  const migrations: QueryConfig<any[]> = {
-    text: `
-      ${createApiUsersTable}
-      ${createKeyLimitsTable}
-      ${createKeyStatusTable}
-      ${createPlanTiersTable}
-      ${createKeysTable}
-      ${createUsers}
-      ${createKeyStatus}
-      ${createPlanTiers}
-    `,
-    values: []
-  }
+//   const migrations: QueryConfig<any[]> = {
+//     text: `
+//       ${createApiUsersTable}
+//       ${createKeyLimitsTable}
+//       ${createKeyStatusTable}
+//       ${createPlanTiersTable}
+//       ${createKeysTable}
+//       ${createUsers}
+//       ${createKeyStatus}
+//       ${createPlanTiers}
+//     `,
+//     values: []
+//   }
 
-  let dbResp: QueryResult<any> | undefined
+//   let dbResp: QueryResult<any> | undefined
 
-  try {
-    await cleanUp()
-  } catch (e) {
-    console.log(e)
-    return undefined
-  }
+//   try {
+//     await cleanUp()
+//   } catch (e) {
+//     console.log(e)
+//     return undefined
+//   }
 
-  try {
-    dbResp = await executeDBQuery(createDB, testPool, true)
-  } catch (e) {
-    console.log(e)
-    return undefined
-  }
+//   try {
+//     dbResp = await executeDBQuery(createDB, testPool, true)
+//   } catch (e) {
+//     console.log(e)
+//     return undefined
+//   }
 
-  try {
-    dbResp = await executeDBQuery(createUser, testPool, true)
-  } catch (e) {
-    console.log(e)
-    return undefined
-  }
+//   try {
+//     dbResp = await executeDBQuery(createUser, testPool, true)
+//   } catch (e) {
+//     console.log(e)
+//     return undefined
+//   }
 
-  try {
-    dbResp = await executeDBQuery(migrations)
-  } catch (e) {
-    console.log(e)
-    return undefined
-  }
+//   try {
+//     dbResp = await executeDBQuery(migrations)
+//   } catch (e) {
+//     console.log(e)
+//     return undefined
+//   }
 
-  return await validateMigrations()
+//   return await validateMigrations()
 
-}
+// }
 
 async function validateMigrations(): Promise<string | undefined> {
 
