@@ -167,7 +167,7 @@ app.use('/api/sales', cors(), salesRouter);
 app.use('/api/ergopay', ergopayRouter);
 app.use('/api/metrics', cors(), metricsRouter);
 app.use('/api/utils', cors(), utilsRouter);
-app.use('/api/transactions', transactionsRouter);
+app.use('/api/transactions', cors(), transactionsRouter);
 app.use('/api/keys', cors(), apiKeysRouter);
 app.use('/api/stripe', cors(), stripeRouter);
 app.use('/api/scanner', cors(), scannerRouter);
