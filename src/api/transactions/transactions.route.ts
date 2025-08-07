@@ -7,20 +7,10 @@ import { postDelistNFT } from "../../ergofunctions/transactions/refund";
 
 const router = express.Router();
 
-// CORS configuration to match ergopay route
-const origins = [
-  'https://skyharbor.io', 
-  'https://www.skyharbor.io', 
-  'https://v1.skyharbor.io',
-  'https://www.v1.skyharbor.io',
-  'http://localhost:3000', 
-  'http://127.0.0.1:3000', 
-  'https://testapi.skyharbor.io', 
-  'https://api.skyharbor.io', 
-  'https://skyharbor-git-development-enftexchange.vercel.app'
-];
-
+// CORS configuration - allow all origins
 const corsOptions: cors.CorsOptions = {
+  origin: true, // Allow all origins
+  credentials: true,
   allowedHeaders: [
     'Origin',
     'X-Requested-With',
@@ -28,8 +18,8 @@ const corsOptions: cors.CorsOptions = {
     'Accept',
   ],
   methods: 'GET,OPTIONS,POST',
-  origin: origins,
   preflightContinue: false,
+  optionsSuccessStatus: 204
 };
 
 // Handle OPTIONS preflight requests
