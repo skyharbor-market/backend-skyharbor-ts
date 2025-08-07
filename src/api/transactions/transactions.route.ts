@@ -1,10 +1,18 @@
-import express from "express";
+import express, { Request, Response } from "express";
 import { postBuyNFT } from "../../ergofunctions/transactions/buyNFT";
 import { postBulkList } from "../../ergofunctions/transactions/bulkList";
 import { postEditNFT } from "../../ergofunctions/transactions/relistNFT";
 import { postDelistNFT } from "../../ergofunctions/transactions/refund";
 
 const router = express.Router();
+
+// Handle OPTIONS preflight requests for CORS
+router.options('*', (req: Request, res: Response) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  res.sendStatus(200);
+});
 
 // Eventually add API caching for speed, and API keys for usage
 
