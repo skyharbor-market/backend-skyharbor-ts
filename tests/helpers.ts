@@ -3,7 +3,7 @@ import express, { Request, Response } from "express"
 import { v4 as uuidv4 } from "uuid"
 import { QueryConfig, QueryResult } from "pg"
 import { executeDBQuery, updateLastUsedTime } from "../src/api/utils/db"
-import { rateLimiterPgMiddleware } from "../src/middlewares/rateLimiterPg"
+// import { rateLimiterPgMiddleware } from "../src/middlewares/rateLimiterPg"
 import apiKeysRouter from "../src/api/apiKeys.route"
 // import { testApiKeyUserPass } from "../src/consts/users"
 import { testPool } from './pools'
@@ -327,7 +327,7 @@ router.get('/test', async (req: Request, res: Response) => {
 })
 
 app.use('/api/keys', apiKeysRouter)
-app.use('/api/v1/sales', rateLimiterPgMiddleware, router)
-app.use('/api/v1/txs', rateLimiterPgMiddleware, router)
+// app.use('/api/v1/sales', rateLimiterPgMiddleware, router)
+// app.use('/api/v1/txs', rateLimiterPgMiddleware, router)
 
 export const testserver = app.listen(4444, () => { })
