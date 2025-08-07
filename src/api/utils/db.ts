@@ -1,5 +1,5 @@
 import { Pool, PoolClient, QueryResult, QueryConfig } from 'pg'
-import { testApiKeysPool } from '../../../tests/pools'
+// import { testApiKeysPool } from '../../../tests/pools'
 import { apiKeyPool } from '../../middlewares/rateLimiterPg'
 import logger from '../../logger'
 
@@ -619,14 +619,14 @@ export async function getStripeCustomer(user: string): Promise<string | undefine
 export async function executeDBQuery(query: QueryConfig<any[]>, pool: Pool = apiKeyPool, asPg: boolean = false): Promise<QueryResult<any>> {
 
   // use prod unless this is a test environment
-  if (!asPg) {
-    //console.log("query", query)
-    switch (process.env.NODE_ENV) {
-      case 'test':
-        pool = testApiKeysPool
-        break
-    }
-  }
+  // if (!asPg) {
+  //   //console.log("query", query)
+  //   switch (process.env.NODE_ENV) {
+  //     case 'test':
+  //       pool = testApiKeysPool
+  //       break
+  //   }
+  // }
 
   return new Promise((resolve, reject) => {
 

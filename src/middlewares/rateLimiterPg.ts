@@ -1,7 +1,7 @@
 import { RateLimiterPostgres } from 'rate-limiter-flexible'
 import { Request, Response, NextFunction } from 'express'
 // import { apiKeyUser, apiKeyUserPass } from '../consts/users'
-import { testApiKeysPool } from '../../tests/pools'
+// import { testApiKeysPool } from '../../tests/pools'
 import { blake2s } from '@noble/hashes/blake2s'
 import { Pool } from 'pg'
 import { getApiKeyByPrefix, ApiKey, DBError } from '../api/utils/db'
