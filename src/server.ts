@@ -24,7 +24,7 @@ import { Pool } from "pg"
 import cors from "cors"
 import path from "path"
 import cookieParser from "cookie-parser"
-import { rateLimiterPgMiddleware } from "./middlewares/rateLimiterPg"
+// import { rateLimiterPgMiddleware } from "./middlewares/rateLimiterPg"
 import morganMiddleware from "./middlewares/morganMiddleware"
 import PgBoss from "pg-boss"
 import { deactivateSubscriptionApiKey, updateApiKeyWithSubscription, getQueuedJobs } from './api/utils/db'
@@ -176,8 +176,8 @@ app.get('/metrics', async (req: Request, res: Response) => {
   res.end(await promClient.register.metrics())
 })
 // public facing APIs with rate limiting
-app.use('/api/v1/sales', rateLimiterPgMiddleware, pubTestKeySalesRouter);
-app.use('/api/v1/txs', rateLimiterPgMiddleware, pubTestKeyTxsRouter);
+// app.use('/api/v1/sales', rateLimiterPgMiddleware, pubTestKeySalesRouter);
+// app.use('/api/v1/txs', rateLimiterPgMiddleware, pubTestKeyTxsRouter);
 
 // catch 404 and forward to error handler
 app.use(function (req: Request, res: Response, next: NextFunction) {
