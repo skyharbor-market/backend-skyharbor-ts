@@ -14,7 +14,7 @@ import {
   getTierPlan,
   KeyLimit
 } from './utils/db'
-import { apiTiers } from '../middlewares/rateLimiterPg'
+// import { apiTiers } from '../middlewares/rateLimiterPg'
 import { blake2s } from '@noble/hashes/blake2s'
 import generateApiKey, { ApiKeyResults } from 'generate-api-key'
 import * as dotenv from "dotenv"
@@ -133,7 +133,7 @@ router.post('/generate', cors(options), async (req: Request, res: Response) => {
   // prime the key_limits rows for the hash so the rate limiter expire timer starts, or use previous
   // limits if this isn't the first API token. It's not catastrophic if this fails since the rows will
   // be created once the user starts to use the token.
-  await setTokenPlanLimits(decodedHash, apiTiers[tierPlan as keyof typeof apiTiers], oldLimits)
+  // await setTokenPlanLimits(decodedHash, apiTiers[tierPlan as keyof typeof apiTiers], oldLimits)
 
   // clean up old key limits
   if (typeof oldKey !== "undefined") {

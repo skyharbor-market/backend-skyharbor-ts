@@ -1,30 +1,35 @@
-// import { RateLimiterPostgres } from 'rate-limiter-flexible'
-// import { Request, Response, NextFunction } from 'express'
+import { RateLimiterPostgres } from 'rate-limiter-flexible'
+import { Request, Response, NextFunction } from 'express'
 // import { apiKeyUser, apiKeyUserPass } from '../consts/users'
-// import { testApiKeysPool } from '../../tests/pools'
-// import { blake2s } from '@noble/hashes/blake2s'
-// import { Pool } from 'pg'
-// import { getApiKeyByPrefix, ApiKey, DBError } from '../api/utils/db'
-// import path from "path"
-// import * as dotenv from "dotenv"
+import { testApiKeysPool } from '../../tests/pools'
+import { blake2s } from '@noble/hashes/blake2s'
+import { Pool } from 'pg'
+import { getApiKeyByPrefix, ApiKey, DBError } from '../api/utils/db'
+import path from "path"
+import * as dotenv from "dotenv"
 
-// const envFilePath = path.resolve(process.cwd(), './.env')
-// dotenv.config({ path: envFilePath })
+const envFilePath = path.resolve(process.cwd(), './.env')
+dotenv.config({ path: envFilePath })
 
-// const DB_HOST_ADDR = process.env.DB_HOST_ADDR || "localhost"
 
-// const aKeyPool = new Pool({
-//   host: DB_HOST_ADDR,
-//   port: 5432,
-//   database: "apikeys",
-//   user: apiKeyUser,
-//   password: apiKeyUserPass,
-//   idleTimeoutMillis: 10000,
-//   connectionTimeoutMillis: 2000,
-//   max: 50,
-// })
+export const apiKeyUser = "apikeys";
+export const apiKeyUserPass = "ePcz727sRm3P_egbBU";
 
-// export const apiKeyPool = aKeyPool
+
+const DB_HOST_ADDR = process.env.DB_HOST_ADDR || "localhost"
+
+const aKeyPool = new Pool({
+  host: DB_HOST_ADDR,
+  port: 5432,
+  database: "apikeys",
+  user: apiKeyUser,
+  password: apiKeyUserPass,
+  idleTimeoutMillis: 10000,
+  connectionTimeoutMillis: 2000,
+  max: 50,
+})
+
+export const apiKeyPool = aKeyPool
 
 // // use test pool if this is a test env
 // const pool = process.env.NODE_ENV !== 'test' ? aKeyPool : testApiKeysPool
